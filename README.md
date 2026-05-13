@@ -24,6 +24,13 @@ In addition, you can convert between some popular file formats.
 - **Read**: T64, PRG, D64
 - **Write**: T64, WAV, TAP, PRG
 
+## Installation
+
+The latest version is published in NPM repository.
+
+You can install the latest version using `npm install -g c64util` or you can
+use npx and easily run with `npx c64util`.
+
 ## Usage
 
 ```bash
