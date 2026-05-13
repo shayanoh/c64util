@@ -10,6 +10,15 @@ pin of the 3rd op-amp, and the gnd pin of the same chip.
 
 In addition, you can convert between some popular file formats.
 
+## Hints
+
+- If you are converting from D64, make sure the game is single-load, meaning it doesn't
+  need to load additional files from the disk, otherwise it fails.
+- If you are converting from T64, if the game is multi-load, you can convert all of it
+  to a single wave file with kernal (slow) loader, but I suggest trying to convert
+  the main part using turbo loader, and others using standard loader to another
+  wave and playing it when required.
+
 ## Supported Formats
 
 - **Read**: T64, PRG, D64

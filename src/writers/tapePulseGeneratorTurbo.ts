@@ -3,13 +3,11 @@ import { readFile } from "fs/promises";
 import { C64FileInfo } from "../types/index.js";
 import { TapePulseGenerator, TapePulseGeneratorOptions } from "./tapePulseGenerator.js";
 import { TapePulseGeneratorKernal } from "./tapePulseGeneratorKernal.js";
-import { loaderHiResBgColor, loaderHiResBitmap, loaderHiResColor, loaderHiResScreen } from './turboGraphics.js';
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
 
-//const PULSE_SHORT = 15 * 8;
-//const PULSE_LONG = 41 * 8;
-// 100 & 350
-const PULSE_SHORT = 80;// 15 * 8;
-const PULSE_LONG = 250; // 41 * 8;
+const PULSE_SHORT = 80;
+const PULSE_LONG = 250;
 
 
 export class TapePulseGeneratorTurbo extends TapePulseGenerator {
@@ -19,38 +17,12 @@ export class TapePulseGeneratorTurbo extends TapePulseGenerator {
     }
 
     private async getLoaderCode(): Promise<{ loaderCode: Buffer, loaderHeaderCode: Buffer }> {
-        /*
-        const loaderHeaderCode = Buffer.from([
-            0x51, 0x03, 0x78, 0xa9, 0x05, 0x85, 0x01, 0xa9, 0x7f, 0x8d, 0x0d, 0xdc,
-            0xad, 0x0d, 0xdc, 0xa9, 0xa7, 0x8d, 0xfe, 0xff, 0xa9, 0x02, 0x8d, 0xff,
-            0xff, 0xa9, 0xff, 0x8d, 0x04, 0xdc, 0xa9, 0x00, 0x8d, 0x05, 0xdc, 0xa9,
-            0x90, 0x8d, 0x0d, 0xdc, 0xa9, 0x19, 0x8d, 0x0e, 0xdc, 0xa9, 0x00, 0x85,
-            0x02, 0xa9, 0x08, 0x85, 0x03, 0xa9, 0x00, 0x85, 0x05, 0x58, 0x20, 0xc7,
-            0x02, 0x20, 0xe5, 0x03, 0xc9, 0x00, 0xf0, 0x3e, 0xc9, 0x02, 0xf0, 0x07,
-            0xa9, 0x37, 0x85, 0x01, 0x4c, 0x9b, 0x03, 0x20, 0xe5, 0x03, 0x85, 0x10,
-            0x20, 0xe5, 0x03, 0x85, 0x11, 0x20, 0xe5, 0x03, 0x85, 0x12, 0x20, 0xe5,
-            0x03, 0x85, 0x13, 0xa0, 0x00, 0xee, 0x20, 0xd0, 0x20, 0xe5, 0x03, 0x91,
-            0x10, 0xe6, 0x10, 0xd0, 0x02, 0xe6, 0x11, 0xa5, 0x10, 0xc5, 0x12, 0xd0,
-            0xec, 0xa5, 0x11, 0xc5, 0x13, 0xd0, 0xe6, 0x4c, 0x8c, 0x03, 0x78, 0xa9,
-            0x37, 0x85, 0x01, 0x20, 0xa3, 0xfd, 0x20, 0x15, 0xfd, 0x20, 0x53, 0xe4,
-            0xa2, 0x80, 0x58, 0x6c, 0x00, 0x03, 0xa5, 0x05, 0xf0, 0xfc, 0xa9, 0x00,
-            0x85, 0x05, 0xa5, 0x04, 0x60
-        ]);
-        const loaderCode = Buffer.from([
-            0xa7, 0x02, 0x48, 0x8a, 0x48, 0xad, 0x0d, 0xdc, 0xa2, 0x19, 0x8e, 0x0e,
-            0xdc, 0x4a, 0x66, 0x02, 0xc6, 0x03, 0xd0, 0x0a, 0xa5, 0x02, 0x85, 0x04,
-            0xa9, 0x08, 0x85, 0x03, 0x85, 0x05, 0x68, 0xaa, 0x68, 0x40, 0xa9, 0x00,
-            0x8d, 0x20, 0xd0, 0xa5, 0x02, 0xc9, 0x01, 0xd0, 0xfa, 0xa9, 0x00, 0x85,
-            0x05, 0xa9, 0x08, 0x85, 0x03, 0x20, 0xe5, 0x03, 0xc9, 0x01, 0xf0, 0xf9,
-            0xa2, 0x09, 0x8a, 0xc5, 0x04, 0xd0, 0xdf, 0x20, 0xe5, 0x03, 0xca, 0xd0,
-            0xf5, 0xc9, 0x00, 0xd0, 0xd5, 0x60, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00,
-            0x8b, 0xe3, 0x51, 0x03, 0x7c, 0xa5, 0x1a,
-            0xa7, 0x51, 0x03
-        ]);
-        */
-        const loaderHeaderCode = await readFile('c64turbo/loader_header.prg');
-        const loaderCode = await readFile('c64turbo/loader.prg');
+        const scriptDir = dirname(fileURLToPath(import.meta.url));
+        const assetDir = join(scriptDir, '../../assets');
+        // Use in development:
+        // const assetDir = join(scriptDir, '../../c64turbo');
+        const loaderHeaderCode = await readFile(join(assetDir, 'loader_header.prg'));
+        const loaderCode = await readFile(join(assetDir, 'loader.prg'));
 
         // Patch average signal length in the code
         const averageSignal = Math.floor((PULSE_LONG + PULSE_SHORT) / 2);
@@ -84,7 +56,7 @@ export class TapePulseGeneratorTurbo extends TapePulseGenerator {
         this.sendPause(500);
 
         this.generateTurboPilot();
-        this.generateTurboGraphics();
+        await this.generateTurboGraphics();
 
         this.startProgress(file.data.length);
 
@@ -156,15 +128,31 @@ export class TapePulseGeneratorTurbo extends TapePulseGenerator {
         this.generateTurboPoke(198, 1);
     }
 
-    private generateTurboGraphics() {
-        this.generateTurboBuffer(0xd800, 0xd800 + 1000, Buffer.from(loaderHiResColor));
-        this.generateTurboPoke(0xd021, loaderHiResBgColor);
+    private async generateTurboGraphics() {
+        const scriptDir = dirname(fileURLToPath(import.meta.url));
+        const assetDir = join(scriptDir, '../../assets');
+        // Use in development:
+        // const assetDir = join(scriptDir, '../../c64turbo');
+        const loaderImage = await readFile(join(assetDir, 'loading.bin')); //Bitmap, Screen, Color  
+        const bitmapLen = 8000;
+        const screenLen = 1000;
+        const colorLen = 1000;
+        const bitmapStart = 0;
+        const screenStart = bitmapLen;
+        const colorStart = bitmapLen + colorLen;
+
+        const screenAddr = 0xc800;
+        const bitmapAddr = 0xe000;
+        const colorAddr = 0xd800;
+
+        this.generateTurboBuffer(colorAddr, colorAddr + colorLen, loaderImage.subarray(colorStart, colorStart + colorLen));
+        this.generateTurboPoke(0xd021, 0);
         this.generateTurboPoke(0xdd00, 0);
         this.generateTurboPoke(0xd018, 0x2e); // 0011 1110 [0010] 2*1k = screen - [111x] * 15*1k = bitmap
         this.generateTurboPoke(0xd011, 0x3b);
-        this.generateTurboPoke(0xd016, 0x18);//
-        this.generateTurboBuffer(0xc800, 0xc800 + 1000, Buffer.from(loaderHiResScreen));
-        this.generateTurboBuffer(0xe000, 0xe000 + 8000, Buffer.from(loaderHiResBitmap));
+        this.generateTurboPoke(0xd016, 0x18);
+        this.generateTurboBuffer(screenAddr, screenAddr + screenLen, loaderImage.subarray(screenStart, screenStart + screenLen));
+        this.generateTurboBuffer(bitmapAddr, bitmapAddr + bitmapLen, loaderImage.subarray(bitmapStart, bitmapStart + bitmapLen));
     }
 
     private generateTurboGraphicsProgress(percent: number, loaderWrittenAddress: number) {

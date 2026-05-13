@@ -80,7 +80,7 @@ if (options.formats) {
 
 if (!options.input || options.help) {
   console.log(
-    chalk.bold.cyan('📼 C64Util - Commodore 64 Tape Converter') + '\n\n' +
+    chalk.bold.cyan('📼 C64Util - Commodore 64 Tape Utility') + '\n\n' +
     chalk.bold('Usage:') + ' c64util -i <input> [options]\n\n' +
     chalk.bold('Options:') + '\n' +
     '  ' + chalk.yellow('-i, --input [file]') + '   Input file (required)\n' +
