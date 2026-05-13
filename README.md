@@ -61,6 +61,8 @@ Extensible plugin-based design:
 - `src/types/` - Type definitions
 - `src/readers/` - Format readers
 - `src/writers/` - Format writers
+- `c64turbo/` - A turbo loader with graphics screen, written in commodore 64 assembly
+- `assets/` - Assembled turbo loader and graphics screen, for use in `c64util -t`
 - `dist/` - Compiled JavaScript output
 - `docs/` - Documentation for file formats
 
