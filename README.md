@@ -31,6 +31,11 @@ The latest version is published in NPM repository.
 You can install the latest version using `npm install -g c64util` or you can use
 npx and easily run with `npx c64util`.
 
+## Development
+
+I've used `pnpm` as package manager so to use the lock file in git repo you should
+get dependencies using `pnpm install`.
+
 ## Usage
 
 ```bash
