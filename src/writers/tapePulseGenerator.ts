@@ -1,4 +1,4 @@
-import { C64FileInfo } from "../types/index.js";
+import { C64FileInfo } from '../types/index.js';
 
 const CLOCK_CYCLES = 985248;
 
@@ -8,11 +8,11 @@ export type TapeProgressStartCallback = (total: number) => void;
 export type TapeProgressFinishCallback = () => void;
 
 export interface TapePulseGeneratorOptions {
-    pulseCallback: TapePulseCallback,
-    progressStartCallback?: TapeProgressStartCallback,
-    progressCallback?: TapeProgressCallback,
-    progressFinishCallback?: TapeProgressFinishCallback
-};
+    pulseCallback: TapePulseCallback;
+    progressStartCallback?: TapeProgressStartCallback;
+    progressCallback?: TapeProgressCallback;
+    progressFinishCallback?: TapeProgressFinishCallback;
+}
 
 export abstract class TapePulseGenerator {
     private callback: TapePulseCallback;
@@ -38,22 +38,23 @@ export abstract class TapePulseGenerator {
 
     sendCustomPulse(pulseCycles: number): void {
         if (pulseCycles <= 0) {
-            throw new Error("Invalid pulse length. Did you forget to set pulse lengths?");
+            throw new Error(
+                'Invalid pulse length. Did you forget to set pulse lengths?'
+            );
         }
         this.callback(pulseCycles);
     }
 
     sendPause(pauseMs: 'Header' | number) {
         var finalVal = 0;
-        if (typeof pauseMs == 'number')
-            finalVal = pauseMs;
+        if (typeof pauseMs == 'number') finalVal = pauseMs;
         else {
             switch (pauseMs) {
                 case 'Header':
                     finalVal = 5000;
                     break;
                 default:
-                    throw new Error("Bad pause value");
+                    throw new Error('Bad pause value');
             }
         }
 

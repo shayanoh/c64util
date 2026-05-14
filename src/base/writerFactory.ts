@@ -2,7 +2,7 @@ import { Writer } from './writer.js';
 import { PrgWriter } from '../writers/prg.js';
 import { WavWriter } from '../writers/wav.js';
 import { T64Writer } from '../writers/t64.js';
-import { WriterOptions } from '../base/writer.js'
+import { WriterOptions } from '../base/writer.js';
 import { TapWriter } from '../writers/tap.js';
 
 export class WriterFactory {

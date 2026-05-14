@@ -2,7 +2,10 @@ import { Writer } from '../base/writer.js';
 import chalk from 'chalk';
 import { C64FileInfo } from '../types/index.js';
 import { open } from 'fs/promises';
-import { TapePulseGenerator, TapePulseGeneratorOptions } from './tapePulseGenerator.js';
+import {
+    TapePulseGenerator,
+    TapePulseGeneratorOptions
+} from './tapePulseGenerator.js';
 import { TapePulseGeneratorTurbo } from './tapePulseGeneratorTurbo.js';
 import { TapePulseGeneratorKernal } from './tapePulseGeneratorKernal.js';
 import { WriterOptions } from '../base/writer.js';
@@ -24,7 +27,6 @@ export class TapWriter extends Writer {
                     total,
                     `  ${chalk.cyan('Generating tape :current / :total bytes')} [:bar] :percent`
                 );
-
             },
             progressCallback: (current: number, total: number) => {
                 this.updateProgressAbsolute(current / total);
@@ -34,10 +36,13 @@ export class TapWriter extends Writer {
             }
         };
         if (this.turbo) {
-            this.pulseGenerator = new TapePulseGeneratorTurbo(pulseGeneratorOptions);
-        }
-        else {
-            this.pulseGenerator = new TapePulseGeneratorKernal(pulseGeneratorOptions);
+            this.pulseGenerator = new TapePulseGeneratorTurbo(
+                pulseGeneratorOptions
+            );
+        } else {
+            this.pulseGenerator = new TapePulseGeneratorKernal(
+                pulseGeneratorOptions
+            );
         }
     }
 
@@ -47,8 +52,7 @@ export class TapWriter extends Writer {
             const tapBuffer = Buffer.alloc(1, tapValue);
             this.write(tapBuffer);
             this.totalBytes += 1;
-        }
-        else {
+        } else {
             const tapBuffer = Buffer.alloc(4, 0);
             tapBuffer[1] = tapValue & 0xff;
             tapBuffer[2] = (tapValue >> 8) & 0xff;
@@ -63,7 +67,6 @@ export class TapWriter extends Writer {
     }
 
     async writeContent(files: C64FileInfo[]): Promise<void> {
-
         this.write(this.generateTapHeader(0)); // Placeholder header, will be overwritten later
         this.totalBytes = 0;
         for (let i = 0; i < files.length; i++) {

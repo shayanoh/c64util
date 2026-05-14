@@ -1,27 +1,32 @@
-
-import { readFile } from "fs/promises";
-import { C64FileInfo } from "../types/index.js";
-import { TapePulseGenerator, TapePulseGeneratorOptions } from "./tapePulseGenerator.js";
-import { TapePulseGeneratorKernal } from "./tapePulseGeneratorKernal.js";
-import { dirname, join } from "path";
-import { fileURLToPath } from "url";
+import { readFile } from 'fs/promises';
+import { C64FileInfo } from '../types/index.js';
+import {
+    TapePulseGenerator,
+    TapePulseGeneratorOptions
+} from './tapePulseGenerator.js';
+import { TapePulseGeneratorKernal } from './tapePulseGeneratorKernal.js';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 
 const PULSE_SHORT = 80;
 const PULSE_LONG = 250;
 
-
 export class TapePulseGeneratorTurbo extends TapePulseGenerator {
-
     constructor(options: TapePulseGeneratorOptions) {
         super(options);
     }
 
-    private async getLoaderCode(): Promise<{ loaderCode: Buffer, loaderHeaderCode: Buffer }> {
+    private async getLoaderCode(): Promise<{
+        loaderCode: Buffer;
+        loaderHeaderCode: Buffer;
+    }> {
         const scriptDir = dirname(fileURLToPath(import.meta.url));
         const assetDir = join(scriptDir, '../../assets');
         // Use in development:
         // const assetDir = join(scriptDir, '../../c64turbo');
-        const loaderHeaderCode = await readFile(join(assetDir, 'loader_header.prg'));
+        const loaderHeaderCode = await readFile(
+            join(assetDir, 'loader_header.prg')
+        );
         const loaderCode = await readFile(join(assetDir, 'loader.prg'));
 
         // Patch average signal length in the code
@@ -34,7 +39,7 @@ export class TapePulseGeneratorTurbo extends TapePulseGenerator {
 
     async generatePulses(file: C64FileInfo, hdrCode?: Buffer): Promise<void> {
         if (hdrCode) {
-            throw new Error("Turbo loader does not support code in header");
+            throw new Error('Turbo loader does not support code in header');
         }
         const { loaderCode, loaderHeaderCode } = await this.getLoaderCode();
         const turboLoader: C64FileInfo = {
@@ -42,7 +47,7 @@ export class TapePulseGeneratorTurbo extends TapePulseGenerator {
             startAddr: 0x2a7,
             endAddr: 0x2a7 + loaderCode.length - 2,
             name: file.name,
-            type: "PRG",
+            type: 'PRG',
             data: loaderCode.subarray(2, loaderCode.length),
             size: loaderCode.length
         };
@@ -51,7 +56,10 @@ export class TapePulseGeneratorTurbo extends TapePulseGenerator {
             pulseCallback: (cycles) => this.sendCustomPulse(cycles)
         });
 
-        await kernal.generatePulses(turboLoader, loaderHeaderCode.subarray(2, loaderHeaderCode.length));
+        await kernal.generatePulses(
+            turboLoader,
+            loaderHeaderCode.subarray(2, loaderHeaderCode.length)
+        );
 
         this.sendPause(500);
 
@@ -64,12 +72,22 @@ export class TapePulseGeneratorTurbo extends TapePulseGenerator {
         const chunkLength = 512;
         const totalSize = file.endAddr - file.startAddr;
         while (writtenBytes < totalSize) {
-            const bytesToWrite = Math.min(chunkLength, totalSize - writtenBytes);
+            const bytesToWrite = Math.min(
+                chunkLength,
+                totalSize - writtenBytes
+            );
             const newStartAddr = file.startAddr + writtenBytes;
             const newEndAddr = newStartAddr + bytesToWrite;
-            this.generateTurboBuffer(newStartAddr, newEndAddr, file.data.subarray(writtenBytes, writtenBytes + bytesToWrite));
+            this.generateTurboBuffer(
+                newStartAddr,
+                newEndAddr,
+                file.data.subarray(writtenBytes, writtenBytes + bytesToWrite)
+            );
             writtenBytes += bytesToWrite;
-            this.generateTurboGraphicsProgress(writtenBytes / totalSize, newEndAddr);
+            this.generateTurboGraphicsProgress(
+                writtenBytes / totalSize,
+                newEndAddr
+            );
             this.updateProgress(writtenBytes, totalSize);
         }
 
@@ -83,8 +101,12 @@ export class TapePulseGeneratorTurbo extends TapePulseGenerator {
         this.finishProgress();
     }
 
-    private sendShortPulse() { this.sendCustomPulse(PULSE_SHORT); }
-    private sendLongPulse() { this.sendCustomPulse(PULSE_LONG); }
+    private sendShortPulse() {
+        this.sendCustomPulse(PULSE_SHORT);
+    }
+    private sendLongPulse() {
+        this.sendCustomPulse(PULSE_LONG);
+    }
 
     private generateTurboPilot() {
         for (let j = 0; j < 100; j++) {
@@ -93,7 +115,6 @@ export class TapePulseGeneratorTurbo extends TapePulseGenerator {
         for (let j = 9; j >= 0; j--) {
             this.generateEncodedByte(j);
         }
-
     }
     private generateEncodedByte(byte: number): void {
         if (byte < 0 || byte > 255) {
@@ -118,10 +139,15 @@ export class TapePulseGeneratorTurbo extends TapePulseGenerator {
     private generateTurboAutorun() {
         const runBuffer = Buffer.alloc(40, 0x20);
         var run = 'run';
-        for (var i = 0; i < run.length; i++) runBuffer[i] = run.charCodeAt(i) - 'a'.charCodeAt(0) + 1;
+        for (var i = 0; i < run.length; i++)
+            runBuffer[i] = run.charCodeAt(i) - 'a'.charCodeAt(0) + 1;
         const lineNumber = 2;
         const scrAddress = 0x400 + lineNumber * 40;
-        this.generateTurboBuffer(scrAddress, scrAddress + runBuffer.length, runBuffer);
+        this.generateTurboBuffer(
+            scrAddress,
+            scrAddress + runBuffer.length,
+            runBuffer
+        );
         this.generateTurboPoke(211, 0);
         this.generateTurboPoke(214, 0);
         this.generateTurboPoke(631, 13);
@@ -133,7 +159,7 @@ export class TapePulseGeneratorTurbo extends TapePulseGenerator {
         const assetDir = join(scriptDir, '../../assets');
         // Use in development:
         // const assetDir = join(scriptDir, '../../c64turbo');
-        const loaderImage = await readFile(join(assetDir, 'loading.bin')); //Bitmap, Screen, Color  
+        const loaderImage = await readFile(join(assetDir, 'loading.bin')); //Bitmap, Screen, Color
         const bitmapLen = 8000;
         const screenLen = 1000;
         const colorLen = 1000;
@@ -145,17 +171,32 @@ export class TapePulseGeneratorTurbo extends TapePulseGenerator {
         const bitmapAddr = 0xe000;
         const colorAddr = 0xd800;
 
-        this.generateTurboBuffer(colorAddr, colorAddr + colorLen, loaderImage.subarray(colorStart, colorStart + colorLen));
+        this.generateTurboBuffer(
+            colorAddr,
+            colorAddr + colorLen,
+            loaderImage.subarray(colorStart, colorStart + colorLen)
+        );
         this.generateTurboPoke(0xd021, 0);
         this.generateTurboPoke(0xdd00, 0);
         this.generateTurboPoke(0xd018, 0x2e); // 0011 1110 [0010] 2*1k = screen - [111x] * 15*1k = bitmap
         this.generateTurboPoke(0xd011, 0x3b);
         this.generateTurboPoke(0xd016, 0x18);
-        this.generateTurboBuffer(screenAddr, screenAddr + screenLen, loaderImage.subarray(screenStart, screenStart + screenLen));
-        this.generateTurboBuffer(bitmapAddr, bitmapAddr + bitmapLen, loaderImage.subarray(bitmapStart, bitmapStart + bitmapLen));
+        this.generateTurboBuffer(
+            screenAddr,
+            screenAddr + screenLen,
+            loaderImage.subarray(screenStart, screenStart + screenLen)
+        );
+        this.generateTurboBuffer(
+            bitmapAddr,
+            bitmapAddr + bitmapLen,
+            loaderImage.subarray(bitmapStart, bitmapStart + bitmapLen)
+        );
     }
 
-    private generateTurboGraphicsProgress(percent: number, loaderWrittenAddress: number) {
+    private generateTurboGraphicsProgress(
+        percent: number,
+        loaderWrittenAddress: number
+    ) {
         const width = 36;
         const filledBars = Math.floor(percent * width);
         const colorBuf = Buffer.alloc(width, 11);
@@ -179,10 +220,16 @@ export class TapePulseGeneratorTurbo extends TapePulseGenerator {
         this.generateTurboPoke(0xdd00, 3);
         this.generateTurboPoke(0xd018, 0x15);
     }
-    private generateTurboBuffer(startAddr: number, endAddr: number, data: Buffer) {
+    private generateTurboBuffer(
+        startAddr: number,
+        endAddr: number,
+        data: Buffer
+    ) {
         const size = endAddr - startAddr;
         if (size != data.length) {
-            throw new Error(`Invalid turbo buffer. Size from address: ${size}, Buffer size: ${data.length}`);
+            throw new Error(
+                `Invalid turbo buffer. Size from address: ${size}, Buffer size: ${data.length}`
+            );
         }
         this.generateEncodedByte(2);
         this.generateEncodedByte(startAddr & 0xff);

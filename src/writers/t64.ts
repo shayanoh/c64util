@@ -5,7 +5,6 @@ import { WriterOptions } from '../base/writer.js';
 import { CbmFileTypeToValue } from '../readers/t64.js';
 
 export class T64Writer extends Writer {
-
     constructor(filePath: string, options: WriterOptions = {}) {
         super(filePath);
     }
@@ -14,7 +13,10 @@ export class T64Writer extends Writer {
         return true;
     }
 
-    async writeContent(files: C64FileInfo[], options: WriterOptions = {}): Promise<void> {
+    async writeContent(
+        files: C64FileInfo[],
+        options: WriterOptions = {}
+    ): Promise<void> {
         const numFiles = files.length;
         const headerBuffer = Buffer.alloc(64 + numFiles * 32, 0);
         headerBuffer.write('C64S tape image file', 0, 'ascii');
@@ -26,14 +28,19 @@ export class T64Writer extends Writer {
         var dataOffset = 64 + numFiles * 32;
         for (var i = 0; i < numFiles; i++) {
             const baseOffset = 64 + i * 32;
-            const type = CbmFileTypeToValue(files[i].type) || CbmFileTypeToValue('PRG');
+            const type =
+                CbmFileTypeToValue(files[i].type) || CbmFileTypeToValue('PRG');
             headerBuffer.writeUInt8(1, baseOffset + 0);
             headerBuffer.writeUInt8(type, baseOffset + 1);
             headerBuffer.writeUInt16LE(files[i].startAddr, baseOffset + 2);
             headerBuffer.writeUInt16LE(files[i].endAddr, baseOffset + 4);
             headerBuffer.writeUInt32LE(dataOffset, baseOffset + 8);
             headerBuffer.fill(' ', baseOffset + 16, 16);
-            headerBuffer.write(files[i].name.padEnd(16, ' '), baseOffset + 16, 'ascii');
+            headerBuffer.write(
+                files[i].name.padEnd(16, ' '),
+                baseOffset + 16,
+                'ascii'
+            );
             dataOffset += files[i].data.length;
         }
         this.createProgressBar(
@@ -49,5 +56,4 @@ export class T64Writer extends Writer {
 
         this.finishProgress();
     }
-
 }
