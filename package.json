@@ -1,7 +1,7 @@
 {
   "name": "c64util",
   "version": "1.0.0",
-  "description": "Node.js utility to convert Commodore 64 disc/tape formats to WAV audio files",
+  "description": "CLI utility to convert Commodore 64 disc/tape formats to WAV audio files",
   "author": "Shayan Ostadhassan <shayanoh@me.com>",
   "main": "dist/index.js",
   "bin": {
