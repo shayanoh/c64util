@@ -36,9 +36,11 @@
   ],
   "license": "MIT",
   "dependencies": {
+    "blessed": "^0.1.81",
     "chalk": "^5.3.0",
     "commander": "^12.0.0",
-    "progress": "^2.0.3"
+    "progress": "^2.0.3",
+    "speaker": "^0.5.5"
   },
   "type": "module",
   "devDependencies": {
