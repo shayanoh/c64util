@@ -8,7 +8,8 @@ import { C64FileInfo, C64Info } from './types/index.js';
 import { Writer } from './base/writer.js';
 import { ReaderFactory } from './base/readerFactory.js';
 import { WriterFactory } from './base/writerFactory.js';
-import { playWav } from './player/audioPlayer.js';
+import { selectFile } from './player/fileSelector.js';
+import { playWavBuffer } from './player/audioPlayer.js';
 
 interface CliOptions {
     input: string;
@@ -95,7 +96,11 @@ program
     .option('-r, --rate [hz]', '', '48000')
     .option('-t, --turbo', '', false)
     .option('-f, --files [mode]', '', 'auto')
-    .option('-p, --play', 'Play output WAV file after conversion', false)
+    .option(
+        '-p, --play',
+        'Interactive play mode: select and play programs',
+        false
+    )
     .option('-F, --formats', 'List supported formats')
     .option('-h, --help', 'Show this help text')
     .showHelpAfterError('Use --help to see usage.');
@@ -132,7 +137,7 @@ if (!options.input || options.help) {
             '   Files: auto (first), all, or number (default: auto)\n' +
             '  ' +
             chalk.yellow('-p, --play') +
-            '           Play output WAV file after conversion\n' +
+            '           Interactive play mode: select and play programs\n' +
             '  ' +
             chalk.yellow('-F, --formats') +
             '        List supported formats\n' +
@@ -243,16 +248,62 @@ if (info.files.length == 0) {
     process.exit(1);
 }
 
+if (options.play) {
+    if (options.output) {
+        console.log(
+            chalk.red('✗ Error: ') +
+                '-p/--play and -o/--output are mutually exclusive'
+        );
+        process.exit(1);
+    }
+    if (options.files !== 'auto') {
+        console.log(
+            chalk.red('✗ Error: ') +
+                '-p/--play and -f/--files are mutually exclusive'
+        );
+        process.exit(1);
+    }
+
+    while (true) {
+        const selected = await selectFile(info.files, info.type);
+        if (!selected) {
+            console.log('\n' + chalk.cyan('ℹ Exiting play mode.'));
+            process.exit(0);
+        }
+
+        const writer = WriterFactory.getBufferWriter({
+            wavSampleRate: parseInt(options.rate),
+            wavTurbo: selected.turbo
+        });
+
+        try {
+            await writer.writeData([selected.file]);
+            await writer.close();
+        } catch (err) {
+            const error = err as Error;
+            console.log(
+                '\n' + chalk.red('✗ Failed to convert: ') + error.message
+            );
+            continue;
+        }
+
+        const wavBuffer = writer.getOutputBuffer();
+        const title = `"${selected.file.name}" (${selected.file.type})`;
+
+        try {
+            await playWavBuffer(wavBuffer, parseInt(options.rate), title);
+        } catch (err) {
+            const error = err as Error;
+            console.log(
+                '\n' + chalk.red('✗ Failed to play audio: ') + error.message
+            );
+        }
+    }
+}
+
 if (!options.output) {
     console.log('\n' + chalk.cyan('ℹ No output file specified, quitting.'));
     process.exit(0);
-}
-
-if (info.files.length == 0) {
-    console.log(
-        '\n' + chalk.red('✗ No programs found in input file, quitting.')
-    );
-    process.exit(1);
 }
 
 let writer: Writer;
@@ -320,15 +371,4 @@ try {
     const error = err as Error;
     console.log('\n' + chalk.red('✗ Failed to write output: ') + error.message);
     process.exit(1);
-}
-
-if (options.play && options.output.toLowerCase().endsWith('.wav')) {
-    try {
-        await playWav(options.output);
-    } catch (err) {
-        const error = err as Error;
-        console.log(
-            '\n' + chalk.red('✗ Failed to play audio: ') + error.message
-        );
-    }
 }

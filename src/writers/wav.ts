@@ -24,7 +24,7 @@ export class WavWriter extends Writer {
 
     private pulseGenerator: TapePulseGenerator;
     constructor(filePath: string, options: WriterOptions = {}) {
-        super(filePath);
+        super(filePath, options);
         this.sampleRate = options.wavSampleRate || 48000;
         this.turbo = options.wavTurbo ? true : false;
         const pulseGeneratorOptions: TapePulseGeneratorOptions = {
@@ -86,11 +86,16 @@ export class WavWriter extends Writer {
 
     async close(): Promise<void> {
         await super.close();
-
-        const buffer = this.generateWavHeader(this.totalSamples);
-        const file = await open(this.filePath, 'r+');
-        await file.write(buffer, 0, buffer.length, 0);
-        await file.close();
+        if (this.bufferOnly) {
+            const header = this.generateWavHeader(this.totalSamples);
+            header.copy(this.outputBuffer, 0);
+        }
+        else {
+            const buffer = this.generateWavHeader(this.totalSamples);
+            const file = await open(this.filePath, 'r+');
+            await file.write(buffer, 0, buffer.length, 0);
+            await file.close();
+        }
     }
 
     private generateWavHeader(dataSize: number): Buffer {
@@ -125,11 +130,11 @@ export class WavWriter extends Writer {
 
         console.log(
             chalk.cyan(' Audio:') +
-                ' ' +
-                durationStr +
-                ' (' +
-                this.totalSamples +
-                ' samples)\n'
+            ' ' +
+            durationStr +
+            ' (' +
+            this.totalSamples +
+            ' samples)\n'
         );
     }
 }

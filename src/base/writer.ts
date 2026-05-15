@@ -6,6 +6,7 @@ import { C64FileInfo } from '../types/index.js';
 export interface WriterOptions {
     wavSampleRate?: number;
     wavTurbo?: boolean;
+    bufferOnly?: boolean;
 }
 
 export abstract class Writer {
@@ -15,8 +16,10 @@ export abstract class Writer {
     protected bufferFilled: number = 0;
     protected progressBar: Progress | null = null;
     protected filePath: string;
+    protected bufferOnly: boolean;
+    protected outputBuffer: Buffer;
 
-    protected constructor(filePath: string) {
+    protected constructor(filePath: string, options: WriterOptions = {}) {
         if (this.constructor === Writer) {
             throw new Error('Writer is an abstract class');
         }
@@ -24,6 +27,8 @@ export abstract class Writer {
         this.buffer = Buffer.alloc(this.chunkSize);
         this.bufferFilled = 0;
         this.filePath = filePath;
+        this.bufferOnly = options.bufferOnly ?? false;
+        this.outputBuffer = Buffer.alloc(0);
     }
 
     protected createProgressBar(total: number, format: string): void {
@@ -69,6 +74,7 @@ export abstract class Writer {
     }
 
     async open(): Promise<void> {
+        if (this.bufferOnly) return;
         const dir = dirname(this.filePath);
         try {
             mkdirSync(dir, { recursive: true });
@@ -81,13 +87,20 @@ export abstract class Writer {
 
     protected write(data: Buffer): void {
         try {
-            const stream = this.getWriteStreamOrThrow();
             if (this.bufferFilled + data.length >= this.chunkSize) {
                 this.flushBuffer();
             }
             if (data.length >= this.chunkSize) {
                 this.flushBuffer();
-                stream.write(data);
+                if (this.bufferOnly) {
+                    this.outputBuffer = Buffer.concat([
+                        this.outputBuffer,
+                        data
+                    ]);
+                } else {
+                    const stream = this.getWriteStreamOrThrow();
+                    stream.write(data);
+                }
             } else {
                 data.copy(this.buffer, this.bufferFilled);
                 this.bufferFilled += data.length;
@@ -117,21 +130,32 @@ export abstract class Writer {
     }
 
     protected flushBuffer(): void {
-        const stream = this.getWriteStreamOrThrow();
         if (this.bufferFilled > 0) {
-            const newBuffer: Buffer = Buffer.alloc(this.bufferFilled);
-            this.buffer.copy(newBuffer, 0);
-            stream.write(newBuffer);
+            if (this.bufferOnly) {
+                const chunk = Buffer.alloc(this.bufferFilled);
+                this.buffer.copy(chunk, 0);
+                this.outputBuffer = Buffer.concat([this.outputBuffer, chunk]);
+            } else {
+                const stream = this.getWriteStreamOrThrow();
+                const newBuffer: Buffer = Buffer.alloc(this.bufferFilled);
+                this.buffer.copy(newBuffer, 0);
+                stream.write(newBuffer);
+            }
             this.bufferFilled = 0;
         }
     }
 
     async close(): Promise<void> {
         this.flushBuffer();
+        if (this.bufferOnly) return;
         if (!this.writeStream) return;
         return new Promise((resolve) => {
             this.writeStream!.end(() => resolve());
         });
+    }
+
+    getOutputBuffer(): Buffer {
+        return this.outputBuffer;
     }
 
     async writeData(
@@ -148,7 +172,7 @@ export abstract class Writer {
         options: WriterOptions
     ): Promise<void>;
 
-    printInfo(): void {}
+    printInfo(): void { }
 
     supportsMultipleFiles(): boolean {
         return false;

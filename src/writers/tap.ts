@@ -18,7 +18,7 @@ export class TapWriter extends Writer {
 
     private pulseGenerator: TapePulseGenerator;
     constructor(filePath: string, options: WriterOptions = {}) {
-        super(filePath);
+        super(filePath, options);
         this.turbo = options.wavTurbo ? true : false;
         const pulseGeneratorOptions: TapePulseGeneratorOptions = {
             pulseCallback: (cycles) => this.writePulse(cycles),

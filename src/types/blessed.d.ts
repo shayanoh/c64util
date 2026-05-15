@@ -82,7 +82,22 @@ declare module 'blessed' {
     class Line extends Element {}
     class ScrollableText extends Element {}
     class BigText extends Element {}
-    class List extends Element {}
+    interface ListOptions extends ElementOptions {
+        items?: string[];
+        selected?: number;
+        bold?: boolean;
+        vi?: boolean;
+    }
+
+    class List extends Element {
+        constructor(options: ListOptions);
+        add(item: string | string[]): void;
+        select(index: number): void;
+        selected: number;
+        getItem(index: number): string;
+        clearItems(): void;
+        setItems(items: string[]): void;
+    }
     class ListTable extends Element {}
     class Listbar extends Element {}
     class Form extends Element {}
@@ -153,7 +168,7 @@ declare module 'blessed' {
         line(options: ElementOptions): Line;
         scrollabletext(options: ElementOptions): ScrollableText;
         bigtext(options: ElementOptions): BigText;
-        list(options: ElementOptions): List;
+        list(options: ListOptions): List;
         listtable(options: ElementOptions): ListTable;
         listbar(options: ElementOptions): Listbar;
         form(options: ElementOptions): Form;

@@ -6,7 +6,7 @@ import { CbmFileTypeToValue } from '../readers/t64.js';
 
 export class T64Writer extends Writer {
     constructor(filePath: string, options: WriterOptions = {}) {
-        super(filePath);
+        super(filePath, options);
     }
 
     supportsMultipleFiles(): boolean {

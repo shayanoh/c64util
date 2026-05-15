@@ -21,4 +21,8 @@ export class WriterFactory {
                 throw new Error(`Unsupported output file format: .${ext}`);
         }
     }
+
+    static getBufferWriter(options: WriterOptions): Writer {
+        return new WavWriter('', { ...options, bufferOnly: true });
+    }
 }

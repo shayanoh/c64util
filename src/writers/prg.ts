@@ -6,7 +6,7 @@ export class PrgWriter extends Writer {
     private totalBytesWritten: number = 0;
 
     constructor(filePath: string, options: WriterOptions = {}) {
-        super(filePath);
+        super(filePath, options);
     }
 
     supportsMultipleFiles(): boolean {

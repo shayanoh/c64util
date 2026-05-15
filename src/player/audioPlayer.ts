@@ -1,63 +1,9 @@
-import { readFile } from 'fs/promises';
 import Speaker from 'speaker';
 import blessed from 'blessed';
 
-interface WavInfo {
-    sampleRate: number;
-    channels: number;
-    bitsPerSample: number;
-    dataOffset: number;
-    dataSize: number;
-    pcmData: Buffer;
-}
-
-function parseWav(buffer: Buffer): WavInfo {
-    if (buffer.subarray(0, 4).toString() !== 'RIFF') {
-        throw new Error('Not a valid WAV file: missing RIFF header');
-    }
-    if (buffer.subarray(8, 12).toString() !== 'WAVE') {
-        throw new Error('Not a valid WAV file: missing WAVE chunk');
-    }
-
-    let offset = 12;
-    let dataOffset = 0;
-    let dataSize = 0;
-    let sampleRate = 0;
-    let channels = 0;
-    let bitsPerSample = 0;
-
-    while (offset < buffer.length) {
-        const chunkId = buffer.subarray(offset, offset + 4).toString();
-        const chunkSize = buffer.readUInt32LE(offset + 4);
-
-        if (chunkId === 'fmt ') {
-            channels = buffer.readUInt16LE(offset + 10);
-            sampleRate = buffer.readUInt32LE(offset + 12);
-            bitsPerSample = buffer.readUInt16LE(offset + 22);
-        } else if (chunkId === 'data') {
-            dataOffset = offset + 8;
-            dataSize = chunkSize;
-            break;
-        }
-
-        offset += 8 + chunkSize;
-    }
-
-    if (dataOffset === 0) {
-        throw new Error('No data chunk found in WAV file');
-    }
-
-    const pcmData = buffer.subarray(dataOffset, dataOffset + dataSize);
-
-    return {
-        sampleRate,
-        channels,
-        bitsPerSample,
-        dataOffset,
-        dataSize,
-        pcmData
-    };
-}
+const WAV_HEADER_SIZE = 44;
+const CHANNELS = 1;
+const BITS_PER_SAMPLE = 8;
 
 function formatTime(seconds: number): string {
     const mins = Math.floor(seconds / 60);
@@ -65,9 +11,17 @@ function formatTime(seconds: number): string {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-export async function playWav(filePath: string): Promise<void> {
-    const fileBuffer = await readFile(filePath);
-    const wav = parseWav(fileBuffer);
+export async function playWavBuffer(
+    wavBuffer: Buffer,
+    sampleRate: number,
+    title: string
+): Promise<boolean> {
+    const pcmData = wavBuffer.subarray(WAV_HEADER_SIZE);
+    const bytesPerSecond = sampleRate * CHANNELS * (BITS_PER_SAMPLE / 8);
+    const totalDuration = pcmData.length / bytesPerSecond;
+    const skipBytes = bytesPerSecond * 5;
+    const chunkIntervalMs = 100;
+    const chunkBytes = Math.round((bytesPerSecond * chunkIntervalMs) / 1000);
 
     const originalStderrWrite = process.stderr.write;
     process.stderr.write = function (
@@ -85,15 +39,6 @@ export async function playWav(filePath: string): Promise<void> {
             arguments as unknown as [any, any, any]
         );
     };
-
-    const totalDuration =
-        wav.dataSize /
-        (wav.sampleRate * wav.channels * (wav.bitsPerSample / 8));
-    const bytesPerSecond =
-        wav.sampleRate * wav.channels * (wav.bitsPerSample / 8);
-    const skipBytes = bytesPerSecond * 5;
-    const chunkIntervalMs = 100;
-    const chunkBytes = Math.round((bytesPerSecond * chunkIntervalMs) / 1000);
 
     const screen = blessed.screen({
         smartCSR: true,
@@ -116,7 +61,7 @@ export async function playWav(filePath: string): Promise<void> {
         top: 1,
         left: 2,
         tags: true,
-        content: `{yellow-fg}${filePath.split('/').pop()}{/yellow-fg}`
+        content: `{yellow-fg}${title}{/yellow-fg}`
     });
 
     const progressBar = blessed.ProgressBar({
@@ -151,12 +96,13 @@ export async function playWav(filePath: string): Promise<void> {
         left: 2,
         tags: true,
         content:
-            '{gray-fg}space: pause  ←: back 5s  →: forward 5s  q: quit{/gray-fg}'
+            '{gray-fg}space: pause  ←: back 5s  →: forward 5s  q: back{/gray-fg}'
     });
 
     let currentByte = 0;
     let isPaused = false;
     let isFinished = false;
+    let userQuit = false;
     const silenceBuffer = Buffer.alloc(chunkBytes, 0x80);
 
     function updateDisplay() {
@@ -170,12 +116,14 @@ export async function playWav(filePath: string): Promise<void> {
     }
 
     const speaker = new Speaker({
-        sampleRate: wav.sampleRate,
-        channels: wav.channels,
-        bitDepth: wav.bitsPerSample
+        sampleRate,
+        channels: CHANNELS,
+        bitDepth: BITS_PER_SAMPLE
     });
 
     screen.render();
+
+    let resolveFn: (value: boolean) => void;
 
     speaker.on('close', () => {
         isFinished = true;
@@ -185,6 +133,7 @@ export async function playWav(filePath: string): Promise<void> {
         screen.render();
         setTimeout(() => {
             screen.destroy();
+            resolveFn(true);
         }, 1000);
     });
 
@@ -211,23 +160,22 @@ export async function playWav(filePath: string): Promise<void> {
     });
 
     screen.key(['right'], () => {
-        currentByte = Math.min(wav.pcmData.length, currentByte + skipBytes);
+        currentByte = Math.min(pcmData.length, currentByte + skipBytes);
         updateDisplay();
     });
 
     screen.key(['escape', 'q', 'C-c'], () => {
         clearInterval(playbackInterval);
         process.stderr.write = originalStderrWrite;
+        userQuit = true;
         speaker.end();
-        setTimeout(() => {
-            screen.destroy();
-        }, 100);
+        screen.destroy();
     });
 
     const playbackInterval = setInterval(() => {
         if (isFinished) return;
 
-        if (currentByte >= wav.pcmData.length) {
+        if (currentByte >= pcmData.length) {
             speaker.end();
             return;
         }
@@ -237,10 +185,7 @@ export async function playWav(filePath: string): Promise<void> {
             return;
         }
 
-        const chunk = wav.pcmData.subarray(
-            currentByte,
-            currentByte + chunkBytes
-        );
+        const chunk = pcmData.subarray(currentByte, currentByte + chunkBytes);
         currentByte += chunk.length;
         updateDisplay();
 
@@ -248,8 +193,11 @@ export async function playWav(filePath: string): Promise<void> {
     }, chunkIntervalMs);
 
     return new Promise((resolve) => {
+        resolveFn = resolve;
         speaker.on('close', () => {
-            resolve();
+            if (!isFinished) {
+                resolve(!userQuit);
+            }
         });
     });
 }
