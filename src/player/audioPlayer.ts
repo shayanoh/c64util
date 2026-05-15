@@ -69,6 +69,23 @@ export async function playWav(filePath: string): Promise<void> {
     const fileBuffer = await readFile(filePath);
     const wav = parseWav(fileBuffer);
 
+    const originalStderrWrite = process.stderr.write;
+    process.stderr.write = function (
+        chunk: any,
+        encoding?: any,
+        callback?: any
+    ): boolean {
+        const str = typeof chunk === 'string' ? chunk : chunk.toString();
+        if (str.includes('buffer underflow') || str.includes('coreaudio.c')) {
+            if (typeof callback === 'function') callback();
+            return true;
+        }
+        return originalStderrWrite.apply(
+            process.stderr,
+            arguments as unknown as [any, any, any]
+        );
+    };
+
     const totalDuration =
         wav.dataSize /
         (wav.sampleRate * wav.channels * (wav.bitsPerSample / 8));
@@ -140,6 +157,7 @@ export async function playWav(filePath: string): Promise<void> {
     let currentByte = 0;
     let isPaused = false;
     let isFinished = false;
+    const silenceBuffer = Buffer.alloc(chunkBytes, 0x80);
 
     function updateDisplay() {
         const elapsed = currentByte / bytesPerSecond;
@@ -162,6 +180,7 @@ export async function playWav(filePath: string): Promise<void> {
     speaker.on('close', () => {
         isFinished = true;
         clearInterval(playbackInterval);
+        process.stderr.write = originalStderrWrite;
         statusText.setContent('{yellow-fg}■ Finished{/yellow-fg}');
         screen.render();
         setTimeout(() => {
@@ -171,6 +190,7 @@ export async function playWav(filePath: string): Promise<void> {
 
     speaker.on('error', (err: Error) => {
         clearInterval(playbackInterval);
+        process.stderr.write = originalStderrWrite;
         screen.destroy();
         throw err;
     });
@@ -197,15 +217,23 @@ export async function playWav(filePath: string): Promise<void> {
 
     screen.key(['escape', 'q', 'C-c'], () => {
         clearInterval(playbackInterval);
+        process.stderr.write = originalStderrWrite;
         speaker.end();
-        screen.destroy();
+        setTimeout(() => {
+            screen.destroy();
+        }, 100);
     });
 
     const playbackInterval = setInterval(() => {
-        if (isPaused || isFinished) return;
+        if (isFinished) return;
 
         if (currentByte >= wav.pcmData.length) {
             speaker.end();
+            return;
+        }
+
+        if (isPaused) {
+            speaker.write(silenceBuffer);
             return;
         }
 
