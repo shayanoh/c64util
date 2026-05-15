@@ -8,6 +8,7 @@
 - `pnpm run dev` — build + run in one step
 - `pnpm run clean` — remove `dist/`
 - `pnpx prettier -w <file>` — format code (required after every edit)
+- Note that `pnpm run dev` does not need `--` to specify command line options
 
 No test framework, no lint script, no CI.
 
