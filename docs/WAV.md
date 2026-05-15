@@ -2,7 +2,9 @@
 
 ## Overview
 
-This document specifies the WAV file format for outputting C64 tape data as audio. The converter outputs mono WAV files at 44.1kHz sample rate, 8-bit depth.
+This document specifies the WAV file format for outputting C64 tape data as
+audio. The converter outputs mono WAV files at 48kHz sample rate (default),
+8-bit depth.
 
 ## File Format Details
 
@@ -45,9 +47,11 @@ data chunk (8 bytes + samples)
 
 ### How C64 Stores Data on Tape
 
-The Commodore 64 uses a unique encoding system for storing data on cassette tape:
+The Commodore 64 uses a unique encoding system for storing data on cassette
+tape:
 
-1. **Square Wave Pulses**: Data is encoded as a sequence of square waves with 50% duty cycle
+1. **Square Wave Pulses**: Data is encoded as a sequence of square waves with
+   50% duty cycle
 2. **Pulse Pairing**: Pulses are always interpreted in pairs
 3. **Three Pulse Types**: Short, Medium, and Long pulses encode data
 
@@ -108,7 +112,8 @@ Commodore tapes write everything twice:
 
 ### Header Block Format (192 bytes)
 
-Sync bytes before each block (header or data): $89 $88 $87 $86 $85 $84 $83 $82 $81
+Sync bytes before each block (header or data): $89 $88 $87 $86 $85 $84 $83 $82
+$81
 
 | Bytes  | Description                                               |
 | ------ | --------------------------------------------------------- |
@@ -126,7 +131,8 @@ Note: Repeated blocks use $09-$01 instead of $89-$81 for sync.
 
 When converting TAP pulse data to WAV audio:
 
-1. **Calculate Sample Count**: For each TAP byte, calculate samples for both high and low half of the pulse
+1. **Calculate Sample Count**: For each TAP byte, calculate samples for both
+   high and low half of the pulse
 
     ```
     half_samples = (pulse_length_seconds * sample_rate) / 2
@@ -143,10 +149,10 @@ When converting TAP pulse data to WAV audio:
 
 ### Example Signal Generation
 
-For a pulse length of 512 microseconds at 44.1kHz:
+For a pulse length of 512 microseconds at 48kHz:
 
 ```
-samples_per_half = (512e-6 * 44100) / 2 = 11.286 ≈ 11 samples
+samples_per_half = (512e-6 * 48000) / 2 = 12.288 ≈ 12 samples
 ```
 
 Each half-wave = 11 samples at 0xFF or 0x00
@@ -156,7 +162,7 @@ Each half-wave = 11 samples at 0xFF or 0x00
 ### TAP Value to Samples Conversion
 
 ```python
-def tap_to_samples(tap_value, clock_cycles=985248, sample_rate=44100):
+def tap_to_samples(tap_value, clock_cycles=985248, sample_rate=48000):
     """Convert TAP byte value to number of samples (both half-waves)"""
     if tap_value == 0:
         return 0  # Overflow - handled separately for v1
@@ -221,7 +227,7 @@ When playing WAV back to C64:
 
 ### Quality Requirements
 
-- Use high sample rate (44.1kHz minimum) for accurate pulse timing
+- Use high sample rate (48kHz) for accurate pulse timing
 - 8-bit is sufficient (C64 uses 1-bit conversion internally)
 - Mono is required (C64 has single-channel tape input)
 
@@ -234,7 +240,8 @@ estimated_samples = sum(tap_bytes) * (8/clock_cycles) * sample_rate * 2
 wav_size = 44 + estimated_samples  # + header size
 ```
 
-For reference: A 100KB TAP file produces approximately a 3-5 minute WAV at 44.1kHz.
+For reference: A 100KB TAP file produces approximately a 3-5 minute WAV at
+48kHz.
 
 ## References
 
