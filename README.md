@@ -31,11 +31,6 @@ The latest version is published in NPM repository.
 You can install the latest version using `npm install -g c64util` or you can use
 npx and easily run with `npx c64util`.
 
-## Development
-
-I've used `pnpm` as package manager so to use the lock file in git repo you should
-get dependencies using `pnpm install`.
-
 ## Usage
 
 ```bash
@@ -50,12 +45,15 @@ c64util -F                                # List supported formats
 
 ## Development
 
+To read the source code or help the development, visit
+[C64Util GitHub](https://github.com/shayanoh/c64util).
+
 ```bash
-npm install        # Install dependencies
-npm run build      # Build only
-npm run start      # Run the built version
-npm run dev        # Build and run
-npm run clean      # Remove the dist/ folder
+pnpm install        # Install dependencies
+pnpm run build      # Build only
+pnpm run start      # Run the built version
+pnpm run dev        # Build and run
+pnpm run clean      # Remove the dist/ folder
 ```
 
 ## Architecture
