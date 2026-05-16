@@ -1,5 +1,5 @@
 export type CbmFileType = 'DEL' | 'SEQ' | 'PRG' | 'USR' | 'REL' | 'UNK';
-export type C64FileType = 'T64' | 'PRG' | 'D64';
+export type C64FileType = 'T64' | 'PRG' | 'D64' | 'TAP' | 'WAV';
 export interface C64Info {
     type: C64FileType;
     version: string;
