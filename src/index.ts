@@ -59,11 +59,11 @@ function showFormats(): void {
     );
     console.log(
         ' ' +
-        chalk.bold('Type').padEnd(colWidths[0]) +
-        '  ' +
-        chalk.bold('Ext').padEnd(colWidths[1]) +
-        '  ' +
-        chalk.bold('Description')
+            chalk.bold('Type').padEnd(colWidths[0]) +
+            '  ' +
+            chalk.bold('Ext').padEnd(colWidths[1]) +
+            '  ' +
+            chalk.bold('Description')
     );
     console.log(
         chalk.bold('─'.repeat(colWidths[0] + colWidths[1] + colWidths[2] + 7))
@@ -72,11 +72,11 @@ function showFormats(): void {
     FORMAT_INFO.forEach((f) => {
         console.log(
             ' ' +
-            chalk.cyan(f.type).padEnd(colWidths[0]) +
-            '  ' +
-            chalk.yellow(f.ext).padEnd(colWidths[1]) +
-            '  ' +
-            chalk.white(f.desc)
+                chalk.cyan(f.type).padEnd(colWidths[0]) +
+                '  ' +
+                chalk.yellow(f.ext).padEnd(colWidths[1]) +
+                '  ' +
+                chalk.white(f.desc)
         );
     });
     console.log(
@@ -115,49 +115,49 @@ if (options.formats) {
 if (!options.input || options.help) {
     console.log(
         chalk.bold.cyan('\n📼 C64Util - Commodore 64 Tape Utility') +
-        '\n\n' +
-        chalk.bold('Usage:') +
-        ' c64util -i <input> [options]\n\n' +
-        chalk.bold('Options:') +
-        '\n' +
-        '  ' +
-        chalk.yellow('-i, --input [file]') +
-        '   Input file (required)\n' +
-        '  ' +
-        chalk.yellow('-o, --output [file]') +
-        '  Output file\n' +
-        '  ' +
-        chalk.yellow('-r, --rate [hz]') +
-        '      Sample rate for WAV (default: 48000)\n' +
-        '  ' +
-        chalk.yellow('-t, --turbo') +
-        '          Add turbo loader\n' +
-        '  ' +
-        chalk.yellow('-f, --files [mode]') +
-        '   Files: auto (first), all, or number (default: auto)\n' +
-        '  ' +
-        chalk.yellow('-p, --play') +
-        '           Interactive play mode: select and play programs\n' +
-        '  ' +
-        chalk.yellow('-F, --formats') +
-        '        List supported formats\n' +
-        '  ' +
-        chalk.yellow('-h, --help') +
-        '           Show this help text\n\n' +
-        chalk.bold('Supported Formats:') +
-        ' T64, PRG, P00 → T64, TAP, WAV, PRG\n\n' +
-        chalk.bold('Examples:') +
-        '\n' +
-        chalk.yellow(' c64util -i game.t64') +
-        '                      Display information about the input file\n' +
-        chalk.yellow(' c64util -i game.t64 -o game.wav') +
-        '          Convert all files in game.t64 to game.wav\n' +
-        chalk.yellow(' c64util -i game.t64 -o game.wav -t') +
-        '       Convert all files using turbo loader\n' +
-        chalk.yellow(' c64util -i game.t64 -o game.wav -r 44100') +
-        ' Convert all files with 44.1kHz sample rate\n' +
-        chalk.yellow(' c64util -i game.t64 -o game.tap -f 1') +
-        '     Convert first file to TAP format\n'
+            '\n\n' +
+            chalk.bold('Usage:') +
+            ' c64util -i <input> [options]\n\n' +
+            chalk.bold('Options:') +
+            '\n' +
+            '  ' +
+            chalk.yellow('-i, --input [file]') +
+            '   Input file (required)\n' +
+            '  ' +
+            chalk.yellow('-o, --output [file]') +
+            '  Output file\n' +
+            '  ' +
+            chalk.yellow('-r, --rate [hz]') +
+            '      Sample rate for WAV (default: 48000)\n' +
+            '  ' +
+            chalk.yellow('-t, --turbo') +
+            '          Add turbo loader\n' +
+            '  ' +
+            chalk.yellow('-f, --files [mode]') +
+            '   Files: auto (first), all, or number (default: auto)\n' +
+            '  ' +
+            chalk.yellow('-p, --play') +
+            '           Interactive play mode: select and play programs\n' +
+            '  ' +
+            chalk.yellow('-F, --formats') +
+            '        List supported formats\n' +
+            '  ' +
+            chalk.yellow('-h, --help') +
+            '           Show this help text\n\n' +
+            chalk.bold('Supported Formats:') +
+            ' T64, PRG, P00 → T64, TAP, WAV, PRG\n\n' +
+            chalk.bold('Examples:') +
+            '\n' +
+            chalk.yellow(' c64util -i game.t64') +
+            '                      Display information about the input file\n' +
+            chalk.yellow(' c64util -i game.t64 -o game.wav') +
+            '          Convert all files in game.t64 to game.wav\n' +
+            chalk.yellow(' c64util -i game.t64 -o game.wav -t') +
+            '       Convert all files using turbo loader\n' +
+            chalk.yellow(' c64util -i game.t64 -o game.wav -r 44100') +
+            ' Convert all files with 44.1kHz sample rate\n' +
+            chalk.yellow(' c64util -i game.t64 -o game.tap -f 1') +
+            '     Convert first file to TAP format\n'
     );
     process.exit(0);
 }
@@ -201,13 +201,13 @@ function formatInfo(info: C64Info): void {
     console.log(chalk.bold('  Version:') + '     ' + chalk.white(info.version));
     console.log(
         chalk.bold('  Entries:') +
-        '     ' +
-        chalk.white(`${info.usedEntries} of ${info.maxEntries} used`)
+            '     ' +
+            chalk.white(`${info.usedEntries} of ${info.maxEntries} used`)
     );
     console.log(
         chalk.bold('  Description:') +
-        ' ' +
-        chalk.white(info.description || 'None')
+            ' ' +
+            chalk.white(info.description || 'None')
     );
     console.log('');
     console.log(sep);
@@ -236,10 +236,10 @@ function formatInfo(info: C64Info): void {
     console.log(sep);
     console.log(
         chalk.bold('  Total:') +
-        ' ' +
-        chalk.white(
-            `${info.totalBytes} bytes across ${info.files.length} file(s)`
-        )
+            ' ' +
+            chalk.white(
+                `${info.totalBytes} bytes across ${info.files.length} file(s)`
+            )
     );
 }
 
@@ -256,14 +256,14 @@ if (options.play) {
     if (options.output) {
         console.log(
             chalk.red('✗ Error: ') +
-            '-p/--play and -o/--output are mutually exclusive'
+                '-p/--play and -o/--output are mutually exclusive'
         );
         process.exit(1);
     }
     if (options.files !== 'auto') {
         console.log(
             chalk.red('✗ Error: ') +
-            '-p/--play and -f/--files are mutually exclusive'
+                '-p/--play and -f/--files are mutually exclusive'
         );
         process.exit(1);
     }
@@ -337,10 +337,10 @@ if (options.files === 'auto') {
     if (isNaN(fileIndex) || fileIndex < 1 || fileIndex > info.files.length) {
         console.log(
             chalk.red('✗ Invalid file index: ') +
-            options.files +
-            ' (must be 1-' +
-            info.files.length +
-            ')'
+                options.files +
+                ' (must be 1-' +
+                info.files.length +
+                ')'
         );
         process.exit(1);
     }
@@ -361,17 +361,17 @@ try {
 
     console.log(
         '\n' +
-        chalk.green('✓ Successfully wrote to ') +
-        chalk.bold(options.output)
+            chalk.green('✓ Successfully wrote to ') +
+            chalk.bold(options.output)
     );
     console.log(
         '  ' +
-        chalk.yellow('Size:') +
-        ' ' +
-        sizeBytes +
-        ' bytes (' +
-        sizeMB +
-        ' MB)'
+            chalk.yellow('Size:') +
+            ' ' +
+            sizeBytes +
+            ' bytes (' +
+            sizeMB +
+            ' MB)'
     );
     writer.printInfo();
 } catch (err) {
