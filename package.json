@@ -1,6 +1,6 @@
 {
     "name": "c64util",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "description": "CLI utility to convert Commodore 64 disc/tape formats to WAV audio files, with interactive play mode",
     "author": "Shayan Ostadhassan <shayanoh@me.com>",
     "main": "dist/index.js",
