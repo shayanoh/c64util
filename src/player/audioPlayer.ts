@@ -15,7 +15,7 @@ export async function playWavBuffer(
     wavBuffer: Buffer,
     sampleRate: number,
     title: string
-): Promise<boolean> {
+): Promise<void> {
     const pcmData = wavBuffer.subarray(WAV_HEADER_SIZE);
     const bytesPerSecond = sampleRate * CHANNELS * (BITS_PER_SAMPLE / 8);
     const totalDuration = pcmData.length / bytesPerSecond;
@@ -68,15 +68,15 @@ export async function playWavBuffer(
         parent: box,
         top: 3,
         left: 2,
-        width: '100%-4',
-        height: 1,
+        width: '100%-5',
+        height: 3,
         border: { type: 'line' },
         style: { bar: { bg: 'cyan', fg: 'black' }, border: { fg: 'gray' } }
     });
 
     const timeDisplay = blessed.text({
         parent: box,
-        top: 5,
+        top: 6,
         left: 2,
         tags: true,
         content: ''
@@ -102,13 +102,12 @@ export async function playWavBuffer(
     let currentByte = 0;
     let isPaused = false;
     let isFinished = false;
-    let userQuit = false;
     const silenceBuffer = Buffer.alloc(chunkBytes, 0x80);
 
     function updateDisplay() {
         const elapsed = currentByte / bytesPerSecond;
         const progress = Math.min(elapsed / totalDuration, 1);
-        progressBar.setProgress(progress);
+        progressBar.setProgress(progress * 100);
         timeDisplay.setContent(
             `{white-fg}${formatTime(elapsed)}{/white-fg} / {gray-fg}${formatTime(totalDuration)}{/gray-fg}`
         );
@@ -123,7 +122,7 @@ export async function playWavBuffer(
 
     screen.render();
 
-    let resolveFn: (value: boolean) => void;
+    let resolveFn: (value: void) => void;
 
     speaker.on('close', () => {
         isFinished = true;
@@ -133,7 +132,7 @@ export async function playWavBuffer(
         screen.render();
         setTimeout(() => {
             screen.destroy();
-            resolveFn(true);
+            resolveFn();
         }, 1000);
     });
 
@@ -167,9 +166,7 @@ export async function playWavBuffer(
     screen.key(['escape', 'q', 'C-c'], () => {
         clearInterval(playbackInterval);
         process.stderr.write = originalStderrWrite;
-        userQuit = true;
         speaker.end();
-        screen.destroy();
     });
 
     const playbackInterval = setInterval(() => {
@@ -194,10 +191,5 @@ export async function playWavBuffer(
 
     return new Promise((resolve) => {
         resolveFn = resolve;
-        speaker.on('close', () => {
-            if (!isFinished) {
-                resolve(!userQuit);
-            }
-        });
     });
 }

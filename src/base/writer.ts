@@ -172,7 +172,7 @@ export abstract class Writer {
         options: WriterOptions
     ): Promise<void>;
 
-    printInfo(): void { }
+    printInfo(): void {}
 
     supportsMultipleFiles(): boolean {
         return false;

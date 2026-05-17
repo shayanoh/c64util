@@ -4,11 +4,13 @@ import { C64FileInfo } from '../types/index.js';
 interface SelectResult {
     file: C64FileInfo;
     turbo: boolean;
+    itemIndex: number;
 }
 
 export async function selectFile(
     files: C64FileInfo[],
-    inputType: string
+    inputType: string,
+    selectedItemIndex: number = 0
 ): Promise<SelectResult | null> {
     await new Promise((r) => setTimeout(r, 50));
     process.stdout.write('\x1b[2J\x1b[H');
@@ -67,7 +69,7 @@ export async function selectFile(
         content: '{white-fg}Mode: Kernal (t: toggle){/white-fg}'
     });
 
-    const listHeight = Math.min(files.length + 2, boxHeight - 6);
+    const listHeight = Math.min(files.length + 2, boxHeight - 7);
     const list = blessed.list({
         parent: box,
         top: 4,
@@ -111,7 +113,7 @@ export async function selectFile(
     }
 
     list.focus();
-    list.select(0);
+    list.select(selectedItemIndex);
     screen.render();
 
     return new Promise((resolve) => {
@@ -119,7 +121,7 @@ export async function selectFile(
             const selected = list.selected;
             if (selected !== null && selected >= 0 && selected < files.length) {
                 screen.destroy();
-                resolve({ file: files[selected], turbo });
+                resolve({ file: files[selected], turbo, itemIndex: selected });
             }
         });
 

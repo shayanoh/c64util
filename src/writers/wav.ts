@@ -89,8 +89,7 @@ export class WavWriter extends Writer {
         if (this.bufferOnly) {
             const header = this.generateWavHeader(this.totalSamples);
             header.copy(this.outputBuffer, 0);
-        }
-        else {
+        } else {
             const buffer = this.generateWavHeader(this.totalSamples);
             const file = await open(this.filePath, 'r+');
             await file.write(buffer, 0, buffer.length, 0);
@@ -130,11 +129,11 @@ export class WavWriter extends Writer {
 
         console.log(
             chalk.cyan(' Audio:') +
-            ' ' +
-            durationStr +
-            ' (' +
-            this.totalSamples +
-            ' samples)\n'
+                ' ' +
+                durationStr +
+                ' (' +
+                this.totalSamples +
+                ' samples)\n'
         );
     }
 }

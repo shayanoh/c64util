@@ -264,12 +264,15 @@ if (options.play) {
         process.exit(1);
     }
 
+    let selectedIndex = 0;
     while (true) {
-        const selected = await selectFile(info.files, info.type);
+        const selected = await selectFile(info.files, info.type, selectedIndex);
         if (!selected) {
             console.log('\n' + chalk.cyan('ℹ Exiting play mode.'));
             process.exit(0);
         }
+
+        selectedIndex = selected.itemIndex;
 
         const writer = WriterFactory.getBufferWriter({
             wavSampleRate: parseInt(options.rate),
