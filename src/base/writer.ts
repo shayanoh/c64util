@@ -12,7 +12,7 @@ export interface WriterOptions {
 export abstract class Writer {
     protected writeStream: WriteStream | null = null;
     protected buffer: Buffer = Buffer.alloc(0);
-    protected chunkSize: number = 64 * 1024;
+    protected chunkSize: number = 1024 * 1024; // 1MB
     protected bufferFilled: number = 0;
     protected progressBar: Progress | null = null;
     protected filePath: string;
@@ -93,10 +93,7 @@ export abstract class Writer {
             if (data.length >= this.chunkSize) {
                 this.flushBuffer();
                 if (this.bufferOnly) {
-                    this.outputBuffer = Buffer.concat([
-                        this.outputBuffer,
-                        data
-                    ]);
+                    this.appendToOutputBuffer(data);
                 } else {
                     const stream = this.getWriteStreamOrThrow();
                     stream.write(data);
@@ -129,12 +126,19 @@ export abstract class Writer {
         return this.writeStream;
     }
 
+    protected appendToOutputBuffer(data: Buffer) {
+        const newBuffer = Buffer.alloc(this.outputBuffer.length + data.length);
+        this.outputBuffer.copy(newBuffer, 0);
+        data.copy(newBuffer, this.outputBuffer.length);
+        this.outputBuffer = newBuffer;
+    }
+
     protected flushBuffer(): void {
         if (this.bufferFilled > 0) {
             if (this.bufferOnly) {
-                const chunk = Buffer.alloc(this.bufferFilled);
-                this.buffer.copy(chunk, 0);
-                this.outputBuffer = Buffer.concat([this.outputBuffer, chunk]);
+                this.appendToOutputBuffer(
+                    this.buffer.subarray(0, this.bufferFilled)
+                );
             } else {
                 const stream = this.getWriteStreamOrThrow();
                 const newBuffer: Buffer = Buffer.alloc(this.bufferFilled);

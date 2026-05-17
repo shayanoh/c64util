@@ -17,7 +17,8 @@ export async function playWavBuffer(
     title: string
 ): Promise<void> {
     const pcmData = wavBuffer.subarray(WAV_HEADER_SIZE);
-    const bytesPerSecond = sampleRate * CHANNELS * (BITS_PER_SAMPLE / 8);
+    const frameSize = CHANNELS * (BITS_PER_SAMPLE / 8);
+    const bytesPerSecond = sampleRate * frameSize;
     const totalDuration = pcmData.length / bytesPerSecond;
     const skipBytes = bytesPerSecond * 5;
     const chunkIntervalMs = 100;
@@ -102,7 +103,6 @@ export async function playWavBuffer(
     let currentByte = 0;
     let isPaused = false;
     let isFinished = false;
-    const silenceBuffer = Buffer.alloc(chunkBytes, 0x80);
 
     function updateDisplay() {
         const elapsed = currentByte / bytesPerSecond;
@@ -169,8 +169,41 @@ export async function playWavBuffer(
         speaker.end();
     });
 
+    // The timer is not guarrantied to fire at exact time, so we need to compensate
+    // for it being late, so there won't be gaps in the audio stream. We will add
+    // a buffer of about 200ms and keep ahead of the playback stream so there won't
+    // be any interruptions
+    const TARGET_BUFFER_MS = 200;
+    const targetBufferBytes =
+        Math.floor((TARGET_BUFFER_MS * bytesPerSecond) / 1000 / frameSize) *
+        frameSize;
+
+    let totalWrittenBytes = 0;
+    const playbackStartTime = performance.now();
+
+    // Pre-fill the buffer with silence before starting the interval
+    speaker.write(Buffer.alloc(targetBufferBytes, 0x80));
+    totalWrittenBytes = 0;
+    currentByte = 0;
+
     const playbackInterval = setInterval(() => {
         if (isFinished) return;
+
+        // How many bytes has the hardware consumed so far?
+        const elapsedMs = performance.now() - playbackStartTime;
+        const consumedBytes = (elapsedMs * bytesPerSecond) / 1000;
+
+        // How deep is our buffer right now?
+        const bufferDepth = totalWrittenBytes - consumedBytes;
+
+        // How many bytes do we need to write to reach our target depth?
+        let bytesToWrite = Math.ceil(targetBufferBytes - bufferDepth);
+        bytesToWrite = Math.max(
+            0,
+            Math.ceil(bytesToWrite / frameSize) * frameSize
+        ); // frame-align
+
+        if (bytesToWrite === 0) return;
 
         if (currentByte >= pcmData.length) {
             speaker.end();
@@ -178,15 +211,26 @@ export async function playWavBuffer(
         }
 
         if (isPaused) {
-            speaker.write(silenceBuffer);
+            speaker.write(Buffer.alloc(bytesToWrite, 0x80));
+            totalWrittenBytes += bytesToWrite;
             return;
         }
 
-        const chunk = pcmData.subarray(currentByte, currentByte + chunkBytes);
-        currentByte += chunk.length;
-        updateDisplay();
+        const end = Math.min(currentByte + bytesToWrite, pcmData.length);
+        const chunkToWrite = pcmData.subarray(currentByte, end);
 
-        speaker.write(chunk);
+        // If we're near the end, pad with silence to avoid a partial underrun
+        if (chunkToWrite.length < bytesToWrite) {
+            const padded = Buffer.alloc(bytesToWrite, 0);
+            chunkToWrite.copy(padded);
+            speaker.write(padded);
+        } else {
+            speaker.write(chunkToWrite);
+        }
+
+        currentByte += chunkToWrite.length;
+        totalWrittenBytes += bytesToWrite;
+        updateDisplay();
     }, chunkIntervalMs);
 
     return new Promise((resolve) => {
