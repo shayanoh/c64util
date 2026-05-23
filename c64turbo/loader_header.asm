@@ -4,11 +4,17 @@
 
 !address {
   BG_COLOR = $D020
-  LDR_BIT_ACCUMULATOR = $02
-  LDR_BIT_COUNTER = $03
-  LDR_BYTE = $04
-  LDR_BYTE_SIGNAL = $05
-  LDR_CHECKSUM = $06
+  BG_BLANK_ADDR = $D011
+
+  ADDR_START_LOW = $61
+  ADDR_START_HIGH = $62
+  ADDR_END_LOW = $63
+  ADDR_END_HIGH = $64
+  LDR_BIT_ACCUMULATOR = $65
+  LDR_BIT_COUNTER = $66
+  LDR_BYTE = $69
+  LDR_BYTE_SIGNAL = $6a
+  LDR_CHECKSUM = $6b
   
   loader_irq = $2A9
   loader_reSync = $2C9
@@ -32,10 +38,10 @@ STA $FFFE
 LDA #>loader_irq;#>irq_handler
 STA $FFFF
 
-; Store 0xff in CIA 1 Timer A countdown, it's the average signal length
-LDA $2A7;LDA #$FF
+; Read average signal length from DWORD $02A7 into CIA 1 Timer A countdown
+LDA $2A7
 STA $DC04
-LDA $2A8;LDA #$00
+LDA $2A8
 STA $DC05
 
 
@@ -71,13 +77,13 @@ STA LDR_BYTE_SIGNAL
 CLI
 
 ; Loader ready and running. 
-; Get sync signal
 
-JSR loader_reSync;reSync
 
 dataBlocks:
+; Get sync signal
+JSR loader_reSync
 ; Read following data type
-JSR waitForByte;waitForByte
+JSR waitForByte
 CMP #$00
 BEQ finish
 CMP #$02
@@ -90,14 +96,14 @@ JMP error ; infinite loop... can't do anything
 prg:
 ; read start address
 JSR waitForByte
-STA $10
+STA ADDR_START_LOW
 JSR waitForByte
-STA $11
+STA ADDR_START_HIGH
 ; read end address
 JSR waitForByte
-STA $12
+STA ADDR_END_LOW
 JSR waitForByte
-STA $13
+STA ADDR_END_HIGH
 
 LDY #$00
 STY LDR_CHECKSUM
@@ -106,40 +112,43 @@ STY LDR_CHECKSUM
 INC BG_COLOR
 JSR waitForByte
 
-STA ($10),Y
+STA (ADDR_START_LOW),Y
 EOR LDR_CHECKSUM
 STA LDR_CHECKSUM
 
-INC $10
+INC ADDR_START_LOW
 BNE +
-INC $11
+INC ADDR_START_HIGH
 +
 
-LDA $10
-CMP $12
+LDA ADDR_START_LOW
+CMP ADDR_END_LOW
 BNE @dataLoop
-LDA $11
-CMP $13
+LDA ADDR_START_HIGH
+CMP ADDR_END_HIGH
 BNE @dataLoop
 
 ; Validate checksum
 JSR waitForByte
 EOR LDR_CHECKSUM
-BEQ error
+BNE error
 
 JMP dataBlocks
 
 finish:
+
 SEI
+
 LDA #$37
 STA $01          ; full memory map restored ($37 = BASIC+KERNAL+I/O)
 
-JSR $FDA3        ; KERNAL: restore default I/O vectors
-JSR $FD15        ; KERNAL: set I/O base (init vectors)
+JSR $FDA3        ; KERNAL: restore default I/O vectors ($ff84 IOINIT [Initialize I/O devices])
+JSR $FD15        ; KERNAL: set I/O base (init vectors)  ($ff8a RESTOR [Set the top of RAM])
 JSR $E453        ; KERNAL: init BASIC interpreter
-LDX #$80         ; checksum OK → X = $80 (RUN flag)
 
 CLI
+
+LDX #$80         ; X = $80 (RUN flag)
 JMP ($0300)
 
 waitForByte:
@@ -151,4 +160,4 @@ LDA LDR_BYTE
 RTS
 
 
-; Shoulld end at most @ $3fb
+; Should end at most @ $3fb

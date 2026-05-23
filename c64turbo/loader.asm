@@ -40,6 +40,10 @@ RTI
 ; SYNC reader
 ; ***************************************
 reSync:
+LDA BG_BLANK_ADDR
+ORA #$10
+STA BG_BLANK_ADDR
+
 LDA #$00
 STA BG_COLOR
 sync:
@@ -73,9 +77,18 @@ RTS
 ; ***************************************
 ; Hook $300 jump table for auto load
 ; ***************************************
-!FILL $0b, 0
-!byte $8b,$e3 ; default for c64 - must be at $300
-!word start
-!byte $7c, $a5
-!byte $1a, $a7
-!word start
+!FILL $03, 0
+
+; We should be at $0300 now.
+; BUG: if we fill just up to $30a, the rest will be overwritten by basic stacks and ...
+;      so we fill with known values up to and including $0333 so the jump table
+;      stays sane
+
+;$0300
+!byte $8b, $e3, <start, >start, $7c, $a5, $1a ,$a7, <start, >start,  $86, $ae, $00, $00, $00, $00
+;$0310
+!byte $4c, $48, $b2, $00, $31, $ea, $66, $fe, $47, $fe, $4a, $f3, $91, $f2, $0e, $f2
+;$320
+!byte $50, $f2, $33, $f3, $57, $f1, $ca, $f1, $ed, $f6, $3e, $f1, $2f, $f3, $66, $fe
+;$330
+!byte $a5, $f4, $ed, $f5

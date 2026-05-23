@@ -9,7 +9,7 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
 const PULSE_SHORT = 80;
-const PULSE_LONG = 250;
+const PULSE_LONG = 300;
 
 export class TapePulseGeneratorTurbo extends TapePulseGenerator {
     constructor(options: TapePulseGeneratorOptions) {
@@ -49,7 +49,7 @@ export class TapePulseGeneratorTurbo extends TapePulseGenerator {
             name: file.name,
             type: 'PRG',
             data: loaderCode.subarray(2, loaderCode.length),
-            size: loaderCode.length
+            size: loaderCode.length - 2
         };
 
         const kernal = new TapePulseGeneratorKernal({
@@ -63,7 +63,6 @@ export class TapePulseGeneratorTurbo extends TapePulseGenerator {
 
         this.sendPause(500);
 
-        this.generateTurboPilot();
         await this.generateTurboGraphics();
 
         this.startProgress(file.data.length);
@@ -93,8 +92,10 @@ export class TapePulseGeneratorTurbo extends TapePulseGenerator {
 
         this.generateTurboGraphicsFinal();
         this.generateTurboAutorun();
+
+        this.generateTurboPilot();
         this.generateEncodedByte(0);
-        this.generateEncodedByte(0);
+
         this.sendPause(100);
 
         this.updateProgress(totalSize, totalSize);
@@ -109,7 +110,7 @@ export class TapePulseGeneratorTurbo extends TapePulseGenerator {
     }
 
     private generateTurboPilot() {
-        for (let j = 0; j < 100; j++) {
+        for (let j = 0; j < 20; j++) {
             this.generateEncodedByte(0x01);
         }
         for (let j = 9; j >= 0; j--) {
@@ -141,17 +142,17 @@ export class TapePulseGeneratorTurbo extends TapePulseGenerator {
         var run = 'run';
         for (var i = 0; i < run.length; i++)
             runBuffer[i] = run.charCodeAt(i) - 'a'.charCodeAt(0) + 1;
-        const lineNumber = 2;
+        const lineNumber = 22;
         const scrAddress = 0x400 + lineNumber * 40;
         this.generateTurboBuffer(
             scrAddress,
             scrAddress + runBuffer.length,
             runBuffer
         );
-        this.generateTurboPoke(211, 0);
-        this.generateTurboPoke(214, 0);
-        this.generateTurboPoke(631, 13);
-        this.generateTurboPoke(198, 1);
+        this.generateTurboPoke(0xd3, 0); //cursor column
+        this.generateTurboPoke(0xd6, lineNumber - 2); //cursor row
+        this.generateTurboPoke(0x277, 13); //keyboard buffer
+        this.generateTurboPoke(0xc6, 1); //keyboard buffer length
     }
 
     private async generateTurboGraphics() {
@@ -178,7 +179,7 @@ export class TapePulseGeneratorTurbo extends TapePulseGenerator {
         );
         this.generateTurboPoke(0xd021, 0);
         this.generateTurboPoke(0xdd00, 0);
-        this.generateTurboPoke(0xd018, 0x2e); // 0011 1110 [0010] 2*1k = screen - [111x] * 15*1k = bitmap
+        this.generateTurboPoke(0xd018, 0x2e); // 0011 1110 [0010] 3*1k = screen - [111x] * 15*1k = bitmap
         this.generateTurboPoke(0xd011, 0x3b);
         this.generateTurboPoke(0xd016, 0x18);
         this.generateTurboBuffer(
@@ -198,6 +199,7 @@ export class TapePulseGeneratorTurbo extends TapePulseGenerator {
         loaderWrittenAddress: number
     ) {
         const width = 36;
+        const lineWidth = 40;
         const filledBars = Math.floor(percent * width);
         const colorBuf = Buffer.alloc(width, 11);
         for (var i = 0; i < filledBars; i++) colorBuf[i] = 1;
@@ -205,20 +207,39 @@ export class TapePulseGeneratorTurbo extends TapePulseGenerator {
         const rowStart = 20;
         const colStart = 2;
         const baseAddress = 0xd800;
+
         var address = baseAddress + rowStart * 40 + colStart;
-        if (loaderWrittenAddress >= address) {
-            // Loader has written program data. If we write progess bar we will corrupt it
-            return;
-        }
+
+        // If loader has written program data over out graphics, do not corrupt it.
+        if (loaderWrittenAddress >= address) return;
+
         this.generateTurboBuffer(address, address + width, colorBuf);
-        address = baseAddress + (rowStart + 1) * 40 + colStart;
-        this.generateTurboBuffer(address, address + 36, colorBuf);
+        this.generateTurboBuffer(
+            address + lineWidth,
+            address + lineWidth + width,
+            colorBuf
+        );
     }
     private generateTurboGraphicsFinal() {
+        // Reset back to text mode and normal addresses
         this.generateTurboPoke(0xd011, 0x1b);
         this.generateTurboPoke(0xd016, 0x08);
         this.generateTurboPoke(0xdd00, 3);
         this.generateTurboPoke(0xd018, 0x15);
+
+        // Reset background color
+        this.generateTurboPoke(0xd020, 0x0e);
+
+        // Reset screen color
+        const colorFillLightBlue = Buffer.alloc(40 * 25, 0x0e);
+        this.generateTurboBuffer(
+            0xd800,
+            0xd800 + colorFillLightBlue.length,
+            colorFillLightBlue
+        );
+
+        //const screenFillSpace = Buffer.alloc(40 * 25, 0x20);
+        //this.generateTurboBuffer(0x400, 0x400 + screenFillSpace.length, screenFillSpace);
     }
     private generateTurboBuffer(
         startAddr: number,
@@ -231,6 +252,7 @@ export class TapePulseGeneratorTurbo extends TapePulseGenerator {
                 `Invalid turbo buffer. Size from address: ${size}, Buffer size: ${data.length}`
             );
         }
+        this.generateTurboPilot();
         this.generateEncodedByte(2);
         this.generateEncodedByte(startAddr & 0xff);
         this.generateEncodedByte(startAddr >> 8);
@@ -241,7 +263,6 @@ export class TapePulseGeneratorTurbo extends TapePulseGenerator {
             this.generateEncodedByte(data[i]);
             checksum ^= data[i];
         }
-        checksum ^= 0xff;
         this.generateEncodedByte(checksum);
     }
 }
