@@ -84,7 +84,9 @@ export class TapePulseGeneratorKernal extends TapePulseGenerator {
         }
         if (file.rawCycles && file.rawCycles.length > 0) {
             this.sendPause(500);
-            file.rawCycles.forEach((pulse) => this.sendCustomPulse(pulse));
+            file.rawCycles.forEach((pulse) =>
+                this.sendCustomPulse(Math.min(pulse, 2048))
+            );
         }
     }
 
