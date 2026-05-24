@@ -1,4 +1,11 @@
-export type CbmFileType = 'DEL' | 'SEQ' | 'PRG' | 'USR' | 'REL' | 'UNK';
+export type CbmFileType =
+    | 'DEL'
+    | 'SEQ'
+    | 'PRG'
+    | 'USR'
+    | 'REL'
+    | 'UNK'
+    | 'RawData';
 export type C64FileType = 'T64' | 'PRG' | 'D64' | 'TAP' | 'WAV';
 export interface C64Info {
     type: C64FileType;
@@ -17,5 +24,7 @@ export interface C64FileInfo {
     startAddr: number;
     endAddr: number;
     size: number;
-    data: Buffer;
+    data?: Buffer;
+    headerBytes?: Buffer;
+    rawCycles?: number[];
 }

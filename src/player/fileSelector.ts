@@ -82,6 +82,7 @@ export async function selectFile(
             selected: { bg: 'cyan', fg: 'black' },
             item: { fg: 'white' }
         },
+        tags: true,
         keys: true,
         mouse: true
     });
@@ -95,10 +96,14 @@ export async function selectFile(
             '{gray-fg}up/down: navigate  enter: play  t: turbo  q: quit{/gray-fg}'
     });
 
+    const indexDigits = files.length >= 100 ? 3 : files.length >= 10 ? 2 : 1;
     files.forEach((f, i) => {
         const addrRange = `$${f.startAddr.toString(16).toUpperCase().padStart(4, '0')}-$${f.endAddr.toString(16).toUpperCase().padStart(4, '0')}`;
         const namePadded = ('"' + f.name + '"').padEnd(18);
-        const label = `#${i + 1}  ${f.type.padEnd(4)}  ${namePadded}  ${addrRange}  (${f.size} bytes)`;
+        let label = `#${(i + 1).toString().padStart(indexDigits, '0')}  ${f.type.padEnd(4)}  ${namePadded}  ${addrRange}  (${f.size} bytes)`;
+        if (f.rawCycles && f.rawCycles.length > 0) {
+            label += '{grey-fg} (+ raw){/grey-fg}';
+        }
         list.add(label);
     });
 

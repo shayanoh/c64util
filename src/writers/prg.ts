@@ -20,11 +20,21 @@ export class PrgWriter extends Writer {
         if (files.length != 1) {
             throw new Error('Only one program should be selected to write.');
         }
+        const file = files[0];
+        if (file.headerBytes && file.headerBytes.length > 0) {
+            throw new Error('PRG files should not have header bytes.');
+        }
+        if (file.rawCycles && file.rawCycles.length > 0) {
+            throw new Error('PRG files should not have raw cycles.');
+        }
+        if (!file.data || file.data.length == 0) {
+            throw new Error('PRG files should have data');
+        }
 
         var header = Buffer.alloc(2);
-        header.writeUInt16LE(files[0].startAddr);
+        header.writeUInt16LE(file.startAddr);
 
         this.write(header);
-        this.write(files[0].data);
+        this.write(file.data);
     }
 }

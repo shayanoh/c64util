@@ -37,9 +37,15 @@ export class TapePulseGeneratorTurbo extends TapePulseGenerator {
         return { loaderCode, loaderHeaderCode };
     }
 
-    async generatePulses(file: C64FileInfo, hdrCode?: Buffer): Promise<void> {
-        if (hdrCode) {
-            throw new Error('Turbo loader does not support code in header');
+    async generatePulses(file: C64FileInfo): Promise<void> {
+        if (file.rawCycles && file.rawCycles.length > 0) {
+            throw new Error('Turbo loader does not support raw pulse data');
+        }
+        if (file.headerBytes && file.headerBytes.length > 0) {
+            throw new Error('Turbo loader does not support header bytes');
+        }
+        if (!file.data || file.data.length == 0) {
+            throw new Error('Turbo loader requires program data');
         }
         const { loaderCode, loaderHeaderCode } = await this.getLoaderCode();
         const turboLoader: C64FileInfo = {
@@ -49,17 +55,15 @@ export class TapePulseGeneratorTurbo extends TapePulseGenerator {
             name: file.name,
             type: 'PRG',
             data: loaderCode.subarray(2, loaderCode.length),
-            size: loaderCode.length - 2
+            size: loaderCode.length - 2,
+            headerBytes: loaderHeaderCode.subarray(2, loaderHeaderCode.length)
         };
 
         const kernal = new TapePulseGeneratorKernal({
             pulseCallback: (cycles) => this.sendCustomPulse(cycles)
         });
 
-        await kernal.generatePulses(
-            turboLoader,
-            loaderHeaderCode.subarray(2, loaderHeaderCode.length)
-        );
+        await kernal.generatePulses(turboLoader);
 
         this.sendPause(500);
 

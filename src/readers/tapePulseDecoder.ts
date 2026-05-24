@@ -1,3 +1,4 @@
+import { start } from 'repl';
 import { C64FileInfo, CbmFileType } from '../types/index.js';
 
 type PulseClass = 'SHORT' | 'MEDIUM' | 'LONG' | 'PAUSE';
@@ -18,6 +19,7 @@ interface HeaderInfo {
     startAddr: number;
     endAddr: number;
     size: number;
+    headerBytes?: number[];
 }
 
 export class TapePulseDecoder {
@@ -61,17 +63,10 @@ export class TapePulseDecoder {
         if (pulseCycles.length === 0) return [];
 
         // Classify all pulses
-        const pulses: PulseClass[] = new Array(pulseCycles.length);
-        const classProgressInterval = Math.max(
-            1,
-            Math.floor(pulseCycles.length / 50)
-        );
-        for (let i = 0; i < pulseCycles.length; i++) {
-            if (onProgress && i % classProgressInterval === 0) {
-                onProgress(i, pulseCycles.length);
-            }
-            pulses[i] = this.classifyPulse(pulseCycles[i]);
-        }
+        const pulses: PulseClass[] = pulseCycles.map((cycle, idx) => {
+            if (onProgress) onProgress(idx, pulseCycles.length);
+            return this.classifyPulse(cycle);
+        });
         if (onProgress) onProgress(pulseCycles.length, pulseCycles.length);
 
         // Find pilot sequences to locate block boundaries
@@ -81,14 +76,33 @@ export class TapePulseDecoder {
         );
 
         // Decode blocks starting after each pilot
-        const blocks: { bytes: number[]; isFirstCopy: boolean }[] = [];
+        const blocks: {
+            bytes: number[];
+            isFirstCopy: boolean;
+            isRaw: boolean;
+        }[] = [];
 
+        let lastPulseIndex = 0;
         for (const pilot of pilots) {
             // A block starts after the pilot ends.
             // Always decode with MAX_DATA_BLOCK_BYTES — the downstream
             // isHeaderBlock() check naturally separates headers (exactly 202
             // bytes) from data blocks (any other size) using the byte count.
             const blockStart = pilot.end;
+            if (pilot.start < lastPulseIndex - 2) {
+                // FIXME: Up to two cycles overlap is possible due to parsing method, so we consider two bytes not overlapping
+                continue;
+            }
+
+            // If there's a raw block between this pilot and last end of pulse,
+            // add it as raw
+            if (pilot.start - lastPulseIndex > 500) {
+                blocks.push({
+                    bytes: pulseCycles.slice(lastPulseIndex, pilot.start),
+                    isFirstCopy: false,
+                    isRaw: true
+                });
+            }
 
             const block = this.tryDecodeBlockBounded(
                 pulses,
@@ -98,84 +112,161 @@ export class TapePulseDecoder {
 
             if (!block || block.bytes.length < 10) continue;
 
+            lastPulseIndex = block.endIndex;
             if (
                 this.isCountdown(block.bytes, TapePulseDecoder.COUNTDOWN_FIRST)
             ) {
-                blocks.push({ bytes: block.bytes, isFirstCopy: true });
+                blocks.push({
+                    bytes: block.bytes,
+                    isFirstCopy: true,
+                    isRaw: false
+                });
             } else if (
                 this.isCountdown(block.bytes, TapePulseDecoder.COUNTDOWN_SECOND)
             ) {
-                blocks.push({ bytes: block.bytes, isFirstCopy: false });
+                blocks.push({
+                    bytes: block.bytes,
+                    isFirstCopy: false,
+                    isRaw: false
+                });
             }
         }
 
-        // If no blocks found via pilots, fall back to sequential scanning
-        if (blocks.length === 0) {
-            const fallbackBlocks = this.scanBlocksSequentially(pulses);
-            blocks.push(...fallbackBlocks);
+        // Get last raw block after all blocks if it exists
+        if (pulseCycles.length - lastPulseIndex > 500) {
+            blocks.push({
+                bytes: pulseCycles.slice(lastPulseIndex, pulseCycles.length),
+                isFirstCopy: false,
+                isRaw: true
+            });
         }
 
         if (blocks.length === 0) return [];
 
-        // Separate header and data blocks (only first copies)
-        const headerBlocks = blocks.filter(
-            (b) => b.isFirstCopy && this.isHeaderBlock(b.bytes.length)
-        );
-        const dataBlocks = blocks.filter(
-            (b) => b.isFirstCopy && !this.isHeaderBlock(b.bytes.length)
-        );
-
-        if (headerBlocks.length === 0) return [];
-
-        // Parse header blocks into program metadata
-        const programs: HeaderInfo[] = [];
-        for (const hb of headerBlocks) {
-            const contentBytes = hb.bytes.slice(
-                9,
-                9 + TapePulseDecoder.HEADER_CONTENT_SIZE
-            );
-            const parsed = this.parseHeaderBlock(contentBytes);
-            if (parsed) programs.push(parsed);
-        }
-
-        // Match data blocks to programs
+        // Assembble blocks into C64 files
         const files: C64FileInfo[] = [];
-        for (let i = 0; i < programs.length; i++) {
-            const prog = programs[i];
+        let fileIdx = 1;
 
-            if (i < dataBlocks.length) {
-                const db = dataBlocks[i];
-                const dataBytes = db.bytes.slice(9, db.bytes.length - 1);
-                const data = Buffer.from(dataBytes);
-
-                const expectedSize = Math.min(prog.size, data.length);
-                const trimmedData = data.subarray(0, expectedSize);
-
-                const actualEndAddr = prog.startAddr + trimmedData.length;
-
+        for (let i = 0; i < blocks.length; i++) {
+            let b = blocks[i];
+            if (b.isRaw) {
                 files.push({
-                    index: i + 1,
-                    type: prog.type,
-                    name: prog.name,
-                    startAddr: prog.startAddr,
-                    endAddr: actualEndAddr,
-                    size: trimmedData.length,
-                    data: trimmedData
+                    index: fileIdx++,
+                    type: 'RawData',
+                    name: '',
+                    startAddr: 0,
+                    endAddr: 0,
+                    size: 0,
+                    rawCycles: b.bytes
                 });
-            } else if (prog.size > 0) {
-                files.push({
-                    index: i + 1,
-                    type: prog.type,
-                    name: prog.name,
-                    startAddr: prog.startAddr,
-                    endAddr: prog.endAddr,
-                    size: prog.size,
-                    data: Buffer.alloc(0)
-                });
+                continue;
+            }
+            if (!this.isHeaderBlock(b.bytes.length) || !b.isFirstCopy) {
+                continue;
+            }
+
+            const headerBlockData = this.parseHeaderBlock(
+                b.bytes.slice(9, 9 + TapePulseDecoder.HEADER_CONTENT_SIZE)
+            );
+            if (!headerBlockData) {
+                continue;
+            }
+
+            let j = i + 1;
+            if (j >= blocks.length) {
+                continue;
+            }
+            let nextBlock = blocks[j];
+            if (
+                nextBlock.isRaw ||
+                !this.isHeaderBlock(nextBlock.bytes.length) ||
+                nextBlock.isFirstCopy
+            ) {
+                continue;
+            }
+
+            j++;
+            if (j >= blocks.length) {
+                continue;
+            }
+            nextBlock = blocks[j];
+            if (
+                nextBlock.isRaw ||
+                this.isHeaderBlock(nextBlock.bytes.length) ||
+                !nextBlock.isFirstCopy
+            ) {
+                continue;
+            }
+            const dataBytes = nextBlock.bytes.slice(
+                9,
+                nextBlock.bytes.length - 1
+            );
+            const data = Buffer.from(dataBytes);
+
+            const expectedSize = Math.min(headerBlockData.size, data.length);
+            const trimmedData = data.subarray(0, expectedSize);
+
+            const actualEndAddr =
+                headerBlockData.startAddr + trimmedData.length;
+
+            files.push({
+                index: fileIdx++,
+                type: headerBlockData.type,
+                name: headerBlockData.name,
+                startAddr: headerBlockData.startAddr,
+                endAddr: actualEndAddr,
+                size: trimmedData.length,
+                headerBytes: headerBlockData.headerBytes
+                    ? Buffer.from(headerBlockData.headerBytes)
+                    : undefined,
+                data: trimmedData
+            });
+
+            j++;
+            if (j >= blocks.length) {
+                continue;
+            }
+            nextBlock = blocks[j];
+            if (
+                nextBlock.isRaw ||
+                this.isHeaderBlock(nextBlock.bytes.length) ||
+                nextBlock.isFirstCopy
+            ) {
+                i = j - 1;
+            } else {
+                i = j;
             }
         }
+        return this.mergeTurboData(files);
+    }
 
-        return files;
+    /**
+     * Merge consecutive header+data pairs into single files if they match the Turbo Tape format
+     */
+    private mergeTurboData(files: C64FileInfo[]): C64FileInfo[] {
+        const mergedFiles: C64FileInfo[] = [];
+        let i = 0;
+        while (i < files.length) {
+            const f = files[i];
+            if (f.type !== 'PRG' || !f.headerBytes || i + 1 >= files.length) {
+                mergedFiles.push(f);
+                i++;
+                continue;
+            }
+
+            // It's possible a turbo loader. If next file is Raw, merge it in.
+            const next = files[i + 1];
+            if (next.type !== 'RawData') {
+                mergedFiles.push(f);
+                i++;
+                continue;
+            }
+
+            // Merge header+data with raw pulses into a single file
+            mergedFiles.push({ ...f, rawCycles: next.rawCycles });
+            i += 2;
+        }
+        return mergedFiles;
     }
 
     /**
@@ -263,43 +354,6 @@ export class TapePulseDecoder {
     // ── Block decoding ──────────────────────────────────────────────────
 
     /**
-     * Fallback: scan blocks sequentially without pilot detection.
-     * Used only when pilot-based detection finds nothing.
-     */
-    private scanBlocksSequentially(
-        pulses: PulseClass[]
-    ): { bytes: number[]; isFirstCopy: boolean }[] {
-        const blocks: { bytes: number[]; isFirstCopy: boolean }[] = [];
-        let searchIndex = 0;
-
-        while (searchIndex < pulses.length) {
-            const block = this.tryDecodeBlockBounded(
-                pulses,
-                searchIndex,
-                TapePulseDecoder.MAX_DATA_BLOCK_BYTES
-            );
-            if (!block || block.bytes.length < 10) {
-                searchIndex += 10;
-                continue;
-            }
-
-            searchIndex = block.endIndex;
-
-            if (
-                this.isCountdown(block.bytes, TapePulseDecoder.COUNTDOWN_FIRST)
-            ) {
-                blocks.push({ bytes: block.bytes, isFirstCopy: true });
-            } else if (
-                this.isCountdown(block.bytes, TapePulseDecoder.COUNTDOWN_SECOND)
-            ) {
-                blocks.push({ bytes: block.bytes, isFirstCopy: false });
-            }
-        }
-
-        return blocks;
-    }
-
-    /**
      * Try to decode a block of bytes starting from the given index.
      * Stops after maxBytes have been decoded, or when EOB is found.
      */
@@ -309,7 +363,7 @@ export class TapePulseDecoder {
         maxBytes: number
     ): DecodedBlock | null {
         const byteStart = this.findNextByteStart(pulses, startIndex);
-        if (byteStart < 0) return null;
+        if (byteStart < 0 || byteStart - startIndex > 10) return null;
 
         const bytes: number[] = [];
         let i = byteStart;
@@ -323,7 +377,7 @@ export class TapePulseDecoder {
             const result = this.tryDecodeByte(pulses, i);
             if (result === null) {
                 const next = this.findNextByteStart(pulses, i + 1);
-                if (next < 0) break;
+                if (next < 0 || next - i > 10) break;
                 i = next;
                 continue;
             }
@@ -427,7 +481,11 @@ export class TapePulseDecoder {
             /[\x20\x00]+$/,
             ''
         );
-
+        const headerBytes = contentBytes.slice(21, contentBytes.length);
+        const countNon20 = headerBytes.reduce(
+            (count, b) => count + (b !== 0x20 ? 1 : 0),
+            0
+        );
         const size = endAddr - startAddr;
 
         return {
@@ -435,7 +493,8 @@ export class TapePulseDecoder {
             name: name || 'UNTITLED',
             startAddr,
             endAddr,
-            size
+            size,
+            headerBytes: countNon20 != 0 ? headerBytes : undefined
         };
     }
 

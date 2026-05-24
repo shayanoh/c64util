@@ -218,7 +218,7 @@ function formatInfo(info: C64Info): void {
 
     info.files.forEach((f, i) => {
         const addrRange = `$${f.startAddr.toString(16).toUpperCase().padStart(4, '0')}-$${f.endAddr.toString(16).toUpperCase().padStart(4, '0')}`;
-        const line =
+        let line =
             '  ' +
             chalk.cyan('#' + (i + 1)) +
             '  ' +
@@ -229,6 +229,12 @@ function formatInfo(info: C64Info): void {
             chalk.white(addrRange) +
             '  ' +
             chalk.gray('(' + f.size + ' bytes)');
+        if (f.headerBytes && f.headerBytes.length > 0) {
+            line += chalk.gray(' [header bytes: ' + f.headerBytes.length + ']');
+        }
+        if (f.rawCycles && f.rawCycles.length > 0) {
+            line += chalk.gray(' [raw cycles: ' + f.rawCycles.length + ']');
+        }
         console.log(line);
     });
 

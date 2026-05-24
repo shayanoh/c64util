@@ -60,5 +60,5 @@ export abstract class TapePulseGenerator {
 
         this.sendCustomPulse(Math.round((finalVal / 1000) * CLOCK_CYCLES));
     }
-    abstract generatePulses(file: C64FileInfo, hdrCode?: Buffer): Promise<void>;
+    abstract generatePulses(file: C64FileInfo): Promise<void>;
 }

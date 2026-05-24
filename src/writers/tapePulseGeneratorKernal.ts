@@ -21,55 +21,71 @@ export class TapePulseGeneratorKernal extends TapePulseGenerator {
         super(options);
     }
 
-    async generatePulses(file: C64FileInfo, hdrCode?: Buffer): Promise<void> {
-        const dataLen = file.data.length;
-
-        this.generatePilot('Header');
-        this.generateHeaderBlock(
-            file.name,
-            file.type,
-            file.startAddr,
-            file.endAddr,
-            false,
-            hdrCode
-        );
-        this.generatePilot('Short');
-        this.generateHeaderBlock(
-            file.name,
-            file.type,
-            file.startAddr,
-            file.endAddr,
-            true,
-            hdrCode
-        );
-
-        this.sendPause('Header');
-
-        this.generatePilot('Data');
-
-        const totalCopies = 2;
-
-        this.startProgress(file.data.length * totalCopies);
-
-        for (let block = 0; block < totalCopies; block++) {
-            const isSecondBlock = block === 1;
-            if (isSecondBlock) {
-                this.generatePilot('Short');
-            }
-
-            this.generateBlockCountdown(isSecondBlock);
-            var checksum = 0;
-            for (let j = 0; j < dataLen; j++) {
-                checksum ^= file.data[j];
-                this.generateEncodedByte(file.data[j]);
-                this.updateProgress(j, dataLen);
-            }
-            this.generateEncodedByte(checksum);
-            this.generateEndOfBlock();
+    async generatePulses(file: C64FileInfo): Promise<void> {
+        let finalHeaderCode: Buffer | undefined = undefined;
+        if (file.headerBytes && file.headerBytes.length > 0) {
+            finalHeaderCode = file.headerBytes;
         }
+        if (finalHeaderCode) {
+            if (!file.data || file.data.length === 0) {
+                throw new Error(
+                    'Header code provided but file has no data. Cannot write header without any file data.'
+                );
+            }
+        }
+        if (file.data && file.data.length > 0) {
+            const dataLen = file.data.length;
+            this.generatePilot('Header');
+            this.generateHeaderBlock(
+                file.name,
+                file.type,
+                file.startAddr,
+                file.endAddr,
+                false,
+                finalHeaderCode
+            );
+            this.generatePilot('Short');
+            this.generateHeaderBlock(
+                file.name,
+                file.type,
+                file.startAddr,
+                file.endAddr,
+                true,
+                finalHeaderCode
+            );
 
-        this.updateProgress(dataLen, dataLen);
-        this.finishProgress();
+            this.sendPause('Header');
+
+            this.generatePilot('Data');
+
+            const totalCopies = 2;
+
+            this.startProgress(file.data.length * totalCopies);
+
+            for (let block = 0; block < totalCopies; block++) {
+                const isSecondBlock = block === 1;
+                if (isSecondBlock) {
+                    this.generatePilot('Short');
+                }
+
+                this.generateBlockCountdown(isSecondBlock);
+                var checksum = 0;
+                for (let j = 0; j < dataLen; j++) {
+                    checksum ^= file.data[j];
+                    this.generateEncodedByte(file.data[j]);
+                    this.updateProgress(j, dataLen);
+                }
+                this.generateEncodedByte(checksum);
+                this.generateEndOfBlock();
+            }
+
+            this.updateProgress(dataLen, dataLen);
+            this.finishProgress();
+        }
+        if (file.rawCycles && file.rawCycles.length > 0) {
+            this.sendPause(500);
+            file.rawCycles.forEach((pulse) => this.sendCustomPulse(pulse));
+        }
     }
 
     protected sendShortPulse() {
