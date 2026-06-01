@@ -4,6 +4,7 @@ import { PRGReader } from '../readers/prg.js';
 import { D64Reader } from '../readers/d64.js';
 import { TAPReader } from '../readers/tap.js';
 import { WAVReader } from '../readers/wav.js';
+import { ImageReader } from '../readers/image.js';
 
 export class ReaderFactory {
     static getReader(filePath: string): Reader {
@@ -20,6 +21,10 @@ export class ReaderFactory {
                 return new TAPReader(filePath);
             case 'wav':
                 return new WAVReader(filePath);
+            case 'jpg':
+            case 'jpeg':
+            case 'png':
+                return new ImageReader(filePath);
             default:
                 throw new Error(`Unsupported file format: .${ext}`);
         }
