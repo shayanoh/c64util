@@ -20,6 +20,7 @@ interface CliOptions {
     help: boolean;
     turbo: boolean;
     play: boolean;
+    extended: boolean;
 }
 
 function showFormats(): void {
@@ -102,6 +103,7 @@ program
         false
     )
     .option('-F, --formats', 'List supported formats')
+    .option('-e, --extended', 'Extended image colors', false)
     .option('-h, --help', 'Show this help text')
     .showHelpAfterError('Use --help to see usage.');
 
@@ -123,6 +125,9 @@ if (!options.input || options.help) {
             '  ' +
             chalk.yellow('-i, --input [file]') +
             '   Input file (required)\n' +
+            '  ' +
+            chalk.yellow('-e, --extended') +
+            '       Use extended colors when converting photos to C64\n' +
             '  ' +
             chalk.yellow('-o, --output [file]') +
             '  Output file\n' +
@@ -164,7 +169,9 @@ if (!options.input || options.help) {
 
 let reader: Reader;
 try {
-    reader = ReaderFactory.getReader(options.input);
+    reader = ReaderFactory.getReader(options.input, {
+        imageExtended: options.extended
+    });
 } catch (err) {
     const error = err as Error;
     console.log(chalk.red('✗ Failed to create reader: ') + error.message);

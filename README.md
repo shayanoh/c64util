@@ -12,7 +12,8 @@ To connect the audio output of your computer to Commodore's datassette, you
 should find the op-amp chip inside, and in my experience the best place would be
 the v+ pin of the 3rd op-amp, and the gnd pin of the same chip.
 
-In addition, you can convert between some popular file formats.
+In addition, you can convert between some popular file formats, including
+**images** which can be loaded with a custom image viewer on the real c64.
 
 ## Hints
 
@@ -25,7 +26,7 @@ In addition, you can convert between some popular file formats.
 
 ## Supported Formats
 
-- **Read**: T64, PRG, D64
+- **Read**: T64, PRG, D64, JPG, JPEG, PNG
 - **Write**: T64, WAV, TAP, PRG
 
 ## Installation
@@ -46,6 +47,17 @@ c64util -i game.t64 -o game.wav -r 44100  # Custom sample rate
 c64util -i game.t64 -o game.wav -t        # Use turbo loader
 c64util -i game.t64 -o game.wav -f 1      # First file only (1-based)
 c64util -i game.t64 -o game.wav -f all    # All files
+```
+
+### Image Conversion
+
+You can convert images to be loaded as a program on C64 and displayed on screen.
+
+Images can be converted using normal 16-color palette, or extended 256-color
+palette.
+
+```
+c64util -i image.jpg -o image.wav -e -t   # Convert image.jpg, using extended (256-color) palette, with turbo load
 ```
 
 ### Interactive Play Mode

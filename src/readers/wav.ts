@@ -1,5 +1,5 @@
 import { readFile } from 'fs/promises';
-import { Reader } from '../base/reader.js';
+import { Reader, ReaderOptions } from '../base/reader.js';
 import { C64Info } from '../types/index.js';
 import { TapePulseDecoder } from './tapePulseDecoder.js';
 
@@ -12,8 +12,8 @@ interface WavFormatInfo {
 }
 
 export class WAVReader extends Reader {
-    constructor(filePath: string) {
-        super(filePath);
+    constructor(filePath: string, options: ReaderOptions = {}) {
+        super(filePath, options);
     }
 
     async read(): Promise<C64Info> {

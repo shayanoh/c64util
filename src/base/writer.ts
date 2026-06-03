@@ -19,7 +19,7 @@ export abstract class Writer {
     protected bufferOnly: boolean;
     protected outputBuffer: Buffer;
 
-    protected constructor(filePath: string, options: WriterOptions = {}) {
+    protected constructor(filePath: string, options: WriterOptions) {
         if (this.constructor === Writer) {
             throw new Error('Writer is an abstract class');
         }

@@ -1,5 +1,5 @@
 import { readFile } from 'fs/promises';
-import { Reader } from '../base/reader.js';
+import { Reader, ReaderOptions } from '../base/reader.js';
 import { C64FileInfo, C64Info, CbmFileType } from '../types/index.js';
 
 const SECTORS_PER_TRACK: Array<number> = [
@@ -9,8 +9,8 @@ const SECTORS_PER_TRACK: Array<number> = [
 
 export class D64Reader extends Reader {
     private fileBuffer?: Buffer = undefined;
-    constructor(filePath: string) {
-        super(filePath);
+    constructor(filePath: string, options: ReaderOptions = {}) {
+        super(filePath, options);
     }
 
     private async readFile(): Promise<void> {

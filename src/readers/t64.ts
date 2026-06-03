@@ -1,4 +1,4 @@
-import { Reader } from '../base/reader.js';
+import { Reader, ReaderOptions } from '../base/reader.js';
 import { readFile } from 'fs/promises';
 import { C64FileInfo, C64Info, CbmFileType } from '../types/index.js';
 
@@ -26,8 +26,8 @@ export class T64Reader extends Reader {
     private maxEntries: number = 0;
     private usedEntries: number = 0;
 
-    constructor(filePath: string) {
-        super(filePath);
+    constructor(filePath: string, options: ReaderOptions = {}) {
+        super(filePath, options);
     }
 
     async read(): Promise<C64Info> {

@@ -1,11 +1,14 @@
 import Progress from 'progress';
 import { C64Info } from '../types/index.js';
 
+export interface ReaderOptions {
+    imageExtended?: boolean;
+}
 export abstract class Reader {
     private readonly filePath: string;
     protected progressBar: Progress | null = null;
 
-    protected constructor(filePath: string) {
+    protected constructor(filePath: string, options: ReaderOptions) {
         this.filePath = filePath;
     }
 

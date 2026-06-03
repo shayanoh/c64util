@@ -183,7 +183,7 @@ export class TapePulseGeneratorTurbo extends TapePulseGenerator {
         );
         this.generateTurboPoke(0xd021, 0);
         this.generateTurboPoke(0xdd00, 0);
-        this.generateTurboPoke(0xd018, 0x2e); // 0011 1110 [0010] 3*1k = screen - [111x] * 15*1k = bitmap
+        this.generateTurboPoke(0xd018, 0x2e); // 0010 1110 [0010] 2*1k = screen - [111x] * 15*1k = bitmap
         this.generateTurboPoke(0xd011, 0x3b);
         this.generateTurboPoke(0xd016, 0x18);
         this.generateTurboBuffer(

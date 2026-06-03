@@ -1,10 +1,10 @@
-import { Reader } from '../base/reader.js';
+import { Reader, ReaderOptions } from '../base/reader.js';
 import { readFile } from 'fs/promises';
 import { C64Info } from '../types/index.js';
 
 export class PRGReader extends Reader {
-    constructor(filePath: string) {
-        super(filePath);
+    constructor(filePath: string, options: ReaderOptions = {}) {
+        super(filePath, options);
     }
 
     async read(): Promise<C64Info> {
