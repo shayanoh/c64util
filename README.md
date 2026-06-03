@@ -15,6 +15,10 @@ the v+ pin of the 3rd op-amp, and the gnd pin of the same chip.
 In addition, you can convert between some popular file formats, including
 **images** which can be loaded with a custom image viewer on the real c64.
 
+There is preliminary support for reading WAV and TAP files and extracting
+programs from them. Currently it is not tested with real WAV files, but TAP
+files found on internet and the WAV output from this utility works fine.
+
 ## Hints
 
 - If you are converting from D64, make sure the game is single-load, meaning it
@@ -26,7 +30,7 @@ In addition, you can convert between some popular file formats, including
 
 ## Supported Formats
 
-- **Read**: T64, PRG, D64, JPG, JPEG, PNG
+- **Read**: T64, PRG, D64, JPG, JPEG, PNG, WAV, TAP
 - **Write**: T64, WAV, TAP, PRG
 
 ## Installation
@@ -49,6 +53,14 @@ c64util -i game.t64 -o game.wav -f 1      # First file only (1-based)
 c64util -i game.t64 -o game.wav -f all    # All files
 ```
 
+### Convert from Audio File
+
+```bash
+c64util -i game.wav -o game.t64  # Convert to t64 for emulators
+c64util -i game.wav -p           # Clean wav file and play it again interactively to load on your C64
+c64util -i game.tap -p           # Play TAP interactively to load it on your C64
+```
+
 ### Image Conversion
 
 You can convert images to be loaded as a program on C64 and displayed on screen.
@@ -56,7 +68,7 @@ You can convert images to be loaded as a program on C64 and displayed on screen.
 Images can be converted using normal 16-color palette, or extended 256-color
 palette.
 
-```
+```bash
 c64util -i image.jpg -o image.wav -e -t   # Convert image.jpg, using extended (256-color) palette, with turbo load
 ```
 
