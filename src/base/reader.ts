@@ -3,6 +3,7 @@ import { C64Info } from '../types/index.js';
 
 export interface ReaderOptions {
     imageExtended?: boolean;
+    imagePreview?: boolean;
 }
 export abstract class Reader {
     private readonly filePath: string;

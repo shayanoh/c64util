@@ -22,6 +22,7 @@ interface CliOptions {
     nographics: boolean;
     play: boolean;
     extended: boolean;
+    nopreview: boolean;
 }
 
 function showFormats(): void {
@@ -98,6 +99,7 @@ program
     .option('-r, --rate [hz]', '', '48000')
     .option('-t, --turbo', '', false)
     .option('--nographics', 'No turbo loader graphics', false)
+    .option('--nopreview', 'No image preview after quantization', false)
     .option('-f, --files [mode]', '', 'auto')
     .option(
         '-p, --play',
@@ -143,6 +145,9 @@ if (!options.input || options.help) {
             chalk.yellow('    --nographics') +
             '     Do not show graphics in turbo loader\n' +
             '  ' +
+            chalk.yellow('    --nopreview') +
+            '      Do not show image preview after quantization\n' +
+            '  ' +
             chalk.yellow('-f, --files [mode]') +
             '   Files: auto (first), all, or number (default: auto)\n' +
             '  ' +
@@ -173,7 +178,8 @@ if (!options.input || options.help) {
 let reader: Reader;
 try {
     reader = ReaderFactory.getReader(options.input, {
-        imageExtended: options.extended
+        imageExtended: options.extended,
+        imagePreview: !options.nopreview
     });
 } catch (err) {
     const error = err as Error;

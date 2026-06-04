@@ -10,9 +10,11 @@ import sharp from 'sharp';
 
 export class ImageReader extends Reader {
     private extendedColor: boolean = false;
+    private imagePreview: boolean = true;
     constructor(filePath: string, options: ReaderOptions = {}) {
         super(filePath, options);
         this.extendedColor = options.imageExtended ?? false;
+        this.imagePreview = options.imagePreview ?? true;
     }
 
     private bitmapToBuffers(
@@ -147,7 +149,9 @@ export class ImageReader extends Reader {
 
         const c64bitmap = await quantizer.processImage();
 
-        await this.displayImageInTerminal(c64bitmap, this.extendedColor);
+        if (this.imagePreview) {
+            await this.displayImageInTerminal(c64bitmap, this.extendedColor);
+        }
         const [
             bitmapBuffer,
             colorRamBuffer,
