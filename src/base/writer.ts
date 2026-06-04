@@ -6,6 +6,7 @@ import { C64FileInfo } from '../types/index.js';
 export interface WriterOptions {
     wavSampleRate?: number;
     wavTurbo?: boolean;
+    wavTurboNoGraphics?: boolean;
     bufferOnly?: boolean;
 }
 

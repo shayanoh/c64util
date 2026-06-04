@@ -19,6 +19,7 @@ interface CliOptions {
     formats: boolean;
     help: boolean;
     turbo: boolean;
+    nographics: boolean;
     play: boolean;
     extended: boolean;
 }
@@ -96,6 +97,7 @@ program
     .option('-o, --output [file]', 'Output file')
     .option('-r, --rate [hz]', '', '48000')
     .option('-t, --turbo', '', false)
+    .option('--nographics', 'No turbo loader graphics', false)
     .option('-f, --files [mode]', '', 'auto')
     .option(
         '-p, --play',
@@ -138,6 +140,9 @@ if (!options.input || options.help) {
             chalk.yellow('-t, --turbo') +
             '          Add turbo loader\n' +
             '  ' +
+            chalk.yellow('    --nographics') +
+            '     Do not show graphics in turbo loader\n' +
+            '  ' +
             chalk.yellow('-f, --files [mode]') +
             '   Files: auto (first), all, or number (default: auto)\n' +
             '  ' +
@@ -149,8 +154,6 @@ if (!options.input || options.help) {
             '  ' +
             chalk.yellow('-h, --help') +
             '           Show this help text\n\n' +
-            chalk.bold('Supported Formats:') +
-            ' T64, PRG, P00 → T64, TAP, WAV, PRG\n\n' +
             chalk.bold('Examples:') +
             '\n' +
             chalk.yellow(' c64util -i game.t64') +
@@ -293,7 +296,8 @@ if (options.play) {
 
         const writer = WriterFactory.getBufferWriter({
             wavSampleRate: parseInt(options.rate),
-            wavTurbo: selected.turbo
+            wavTurbo: selected.turbo,
+            wavTurboNoGraphics: selected.turboNoGraphics
         });
 
         try {
@@ -331,7 +335,8 @@ let writer: Writer;
 try {
     writer = WriterFactory.getWriter(options.output, {
         wavSampleRate: parseInt(options.rate),
-        wavTurbo: options.turbo
+        wavTurbo: options.turbo,
+        wavTurboNoGraphics: options.nographics
     });
 } catch (err) {
     const error = err as Error;

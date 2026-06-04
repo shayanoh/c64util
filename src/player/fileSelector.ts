@@ -4,6 +4,7 @@ import { C64FileInfo } from '../types/index.js';
 interface SelectResult {
     file: C64FileInfo;
     turbo: boolean;
+    turboNoGraphics: boolean;
     itemIndex: number;
 }
 
@@ -108,11 +109,21 @@ export async function selectFile(
     });
 
     let turbo = false;
+    let turboNoGraphics = false;
 
     function updateModeDisplay() {
-        const mode = turbo
-            ? '{white-fg}Mode:{/white-fg} {red-fg}Turbo{/red-fg} {white-fg}(t: toggle){/white-fg}'
-            : '{white-fg}Mode: Kernal (t: toggle){/white-fg}';
+        let mode = '';
+        if (turbo) {
+            if (turboNoGraphics) {
+                mode =
+                    '{white-fg}Mode:{/white-fg} {red-fg}Turbo{/red-fg} {green-fg}(Text Mode){/green-fg} {white-fg}(t: toggle){/white-fg}';
+            } else {
+                mode =
+                    '{white-fg}Mode:{/white-fg} {red-fg}Turbo{/red-fg} {white-fg}(t: toggle){/white-fg}';
+            }
+        } else {
+            mode = '{white-fg}Mode: Kernal (t: toggle){/white-fg}';
+        }
         modeText.setContent(mode);
         screen.render();
     }
@@ -126,12 +137,27 @@ export async function selectFile(
             const selected = list.selected;
             if (selected !== null && selected >= 0 && selected < files.length) {
                 screen.destroy();
-                resolve({ file: files[selected], turbo, itemIndex: selected });
+                resolve({
+                    file: files[selected],
+                    turbo,
+                    turboNoGraphics,
+                    itemIndex: selected
+                });
             }
         });
 
         list.key(['t'], () => {
-            turbo = !turbo;
+            if (turbo) {
+                if (turboNoGraphics) {
+                    turbo = false;
+                    turboNoGraphics = false;
+                } else {
+                    turboNoGraphics = true;
+                }
+            } else {
+                turbo = true;
+                turboNoGraphics = false;
+            }
             updateModeDisplay();
         });
 

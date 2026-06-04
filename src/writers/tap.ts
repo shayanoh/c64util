@@ -37,7 +37,8 @@ export class TapWriter extends Writer {
         };
         if (this.turbo) {
             this.pulseGenerator = new TapePulseGeneratorTurbo(
-                pulseGeneratorOptions
+                pulseGeneratorOptions,
+                options.wavTurboNoGraphics ?? false
             );
         } else {
             this.pulseGenerator = new TapePulseGeneratorKernal(

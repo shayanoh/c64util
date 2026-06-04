@@ -26,7 +26,7 @@ export class WavWriter extends Writer {
     constructor(filePath: string, options: WriterOptions = {}) {
         super(filePath, options);
         this.sampleRate = options.wavSampleRate || 48000;
-        this.turbo = options.wavTurbo ? true : false;
+        this.turbo = options.wavTurbo ?? false;
         const pulseGeneratorOptions: TapePulseGeneratorOptions = {
             pulseCallback: (cycles) => this.writePulse(cycles),
             progressStartCallback: (total: number) => {
@@ -44,7 +44,8 @@ export class WavWriter extends Writer {
         };
         if (this.turbo) {
             this.pulseGenerator = new TapePulseGeneratorTurbo(
-                pulseGeneratorOptions
+                pulseGeneratorOptions,
+                options.wavTurboNoGraphics ?? false
             );
         } else {
             this.pulseGenerator = new TapePulseGeneratorKernal(

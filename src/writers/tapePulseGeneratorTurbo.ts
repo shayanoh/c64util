@@ -12,8 +12,10 @@ const PULSE_SHORT = 80;
 const PULSE_LONG = 300;
 
 export class TapePulseGeneratorTurbo extends TapePulseGenerator {
-    constructor(options: TapePulseGeneratorOptions) {
+    private noGraphics: boolean = false;
+    constructor(options: TapePulseGeneratorOptions, noGraphics: boolean) {
         super(options);
+        this.noGraphics = noGraphics;
     }
 
     private async getLoaderCode(): Promise<{
@@ -67,7 +69,7 @@ export class TapePulseGeneratorTurbo extends TapePulseGenerator {
 
         this.sendPause(500);
 
-        await this.generateTurboGraphics();
+        if (!this.noGraphics) await this.generateTurboGraphics();
 
         this.startProgress(file.data.length);
 
@@ -87,14 +89,23 @@ export class TapePulseGeneratorTurbo extends TapePulseGenerator {
                 file.data.subarray(writtenBytes, writtenBytes + bytesToWrite)
             );
             writtenBytes += bytesToWrite;
-            this.generateTurboGraphicsProgress(
-                writtenBytes / totalSize,
-                newEndAddr
-            );
+            if (this.noGraphics) {
+                this.generateTurboTextProgress(
+                    writtenBytes / totalSize,
+                    newEndAddr
+                );
+            } else {
+                this.generateTurboGraphicsProgress(
+                    writtenBytes / totalSize,
+                    newEndAddr
+                );
+            }
             this.updateProgress(writtenBytes, totalSize);
         }
 
-        this.generateTurboGraphicsFinal();
+        if (!this.noGraphics) {
+            this.generateTurboGraphicsFinal();
+        }
         this.generateTurboAutorun();
 
         this.generateTurboPilot();
@@ -198,6 +209,33 @@ export class TapePulseGeneratorTurbo extends TapePulseGenerator {
         );
     }
 
+    private generateTurboTextProgress(
+        percent: number,
+        loaderWrittenAddress: number
+    ) {
+        if (loaderWrittenAddress > 0xd800) return;
+        const width = 40;
+        const filledWidth = Math.floor(percent * width);
+        const buffer = Buffer.alloc(40);
+
+        const lastLineOffset = 24 * 40;
+        const screenAddr = 0x400;
+        const colorAddr = 0xd800;
+
+        buffer.fill(0xa0);
+        this.generateTurboBuffer(
+            screenAddr + lastLineOffset,
+            screenAddr + lastLineOffset + buffer.length,
+            buffer
+        );
+        buffer.fill(0);
+        buffer.fill(1, 0, filledWidth);
+        this.generateTurboBuffer(
+            colorAddr + lastLineOffset,
+            colorAddr + lastLineOffset + buffer.length,
+            buffer
+        );
+    }
     private generateTurboGraphicsProgress(
         percent: number,
         loaderWrittenAddress: number
