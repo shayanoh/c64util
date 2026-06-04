@@ -72,28 +72,47 @@ export class ImageReader extends Reader {
             console.log("Terminal doesn't support preview image.");
             return;
         }
-        const rgbBuffer = Buffer.alloc(320 * 200 * 3, 0);
+        const scale = 2;
+        const width = 320 * scale;
+        const height = 200 * scale;
+        const rgbBuffer = Buffer.alloc(width * height * 3, 0);
+        const putPixel = (
+            x: number,
+            y: number,
+            r: number,
+            g: number,
+            b: number
+        ) => {
+            rgbBuffer[y * width * 3 + x * 3 + 0] = r;
+            rgbBuffer[y * width * 3 + x * 3 + 1] = g;
+            rgbBuffer[y * width * 3 + x * 3 + 2] = b;
+        };
         for (let by = 0; by < 25; by++) {
             for (let bx = 0; bx < 40; bx++) {
                 const block = bitmap.blocks[by * 40 + bx];
                 for (let y = 0; y < 8; y++) {
                     for (let x = 0; x < 4; x++) {
                         var rgb = block.colorsPalette[block.pixels[y * 4 + x]];
-                        const ybuf = by * 8 + y;
-                        const xbuf = bx * 8 + x * 2;
-                        rgbBuffer[ybuf * 320 * 3 + xbuf * 3 + 0] = rgb[0];
-                        rgbBuffer[ybuf * 320 * 3 + xbuf * 3 + 1] = rgb[1];
-                        rgbBuffer[ybuf * 320 * 3 + xbuf * 3 + 2] = rgb[2];
-                        rgbBuffer[ybuf * 320 * 3 + xbuf * 3 + 3] = rgb[0];
-                        rgbBuffer[ybuf * 320 * 3 + xbuf * 3 + 4] = rgb[1];
-                        rgbBuffer[ybuf * 320 * 3 + xbuf * 3 + 5] = rgb[2];
+                        const ybuf = (by * 8 + y) * scale;
+                        const xbuf = (bx * 8 + x * 2) * scale;
+                        for (let i = 0; i < 2; i++) {
+                            for (let j = 0; j < 4; j++) {
+                                putPixel(
+                                    xbuf + j,
+                                    ybuf + i,
+                                    rgb[0],
+                                    rgb[1],
+                                    rgb[2]
+                                );
+                            }
+                        }
                     }
                 }
             }
         }
 
         const pngBuffer = await sharp(rgbBuffer, {
-            raw: { width: 320, height: 200, channels: 3 }
+            raw: { width, height, channels: 3 }
         })
             .png()
             .toBuffer();
