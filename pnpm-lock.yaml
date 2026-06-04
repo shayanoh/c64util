@@ -26,6 +26,9 @@ importers:
       speaker:
         specifier: ^0.5.5
         version: 0.5.5
+      supports-terminal-graphics:
+        specifier: ^0.1.0
+        version: 0.1.0
     devDependencies:
       '@types/node':
         specifier: ^25.6.0
@@ -262,6 +265,10 @@ packages:
     resolution: {integrity: sha512-IBeMZUITigYBO139h0+1MAgBHNZF55GFJN4U/Box35Sg49cfqYkbCO92TXoCUy22Ast08zfqKuXLvPxq9CWwLw==}
     engines: {node: '>=8.6'}
 
+  supports-terminal-graphics@0.1.0:
+    resolution: {integrity: sha512-+KdfozhS0Fw8y5Sghw8kkZNGT8nWYzJ1EzcoIvVjxhl+26TJTs26y02yfBgvc1jh5AS/c8jcI3xtahhR95KRyQ==}
+    engines: {node: '>=20'}
+
   tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
 
@@ -455,6 +462,8 @@ snapshots:
       debug: 4.4.3
     transitivePeerDependencies:
       - supports-color
+
+  supports-terminal-graphics@0.1.0: {}
 
   tslib@2.8.1:
     optional: true

@@ -11,12 +11,14 @@ type BlockData = {
 export interface C64Block {
     /** Palette indices: [background, local1, local2, local3] */
     colors: [number, number, number, number];
+    colorsPalette: [number, number, number][];
     /** 32 entries, each a palette index from `colors` */
     pixels: number[];
 }
 
 export interface C64Bitmap {
     background: number;
+    backgroundPalette: [number, number, number];
     blocks: C64Block[];
 }
 
@@ -137,7 +139,7 @@ export class C64ImageQuantizer {
         '#FFFFFF',
         '#68372b',
         '#70a4b2',
-        '#6f3d86', //4
+        '#6f3d86',
         '#588d43',
         '#352879',
         '#b8c252',
@@ -147,7 +149,7 @@ export class C64ImageQuantizer {
         '#444444',
         '#6c6c6c',
         '#9ad284',
-        '#6c5eb5', //e
+        '#6c5eb5',
         '#959595'
     ];
 
@@ -583,7 +585,11 @@ export class C64ImageQuantizer {
                           allowed
                       )
                     : this.quantizeBlock(labs, allowed);
-                return { colors: allowed, pixels: quantized };
+                return {
+                    colors: allowed,
+                    pixels: quantized,
+                    colorsPalette: allowed.map((idx) => this.C64PaletteRGB[idx])
+                };
             }
         );
         this.progressCallback?.(this.blocks.length, this.blocks.length);
@@ -609,11 +615,21 @@ export class C64ImageQuantizer {
                     // Pad with empty blocks if image is smaller than 320x200
                     fullscreenOutputBlocks.push({
                         colors: [bgIdx, 0, 0, 0],
+                        colorsPalette: [
+                            this.C64PaletteRGB[bgIdx],
+                            this.C64PaletteRGB[0],
+                            this.C64PaletteRGB[0],
+                            this.C64PaletteRGB[0]
+                        ],
                         pixels: new Array(64).fill(0)
                     });
                 }
             }
         }
-        return { background: bgIdx, blocks: fullscreenOutputBlocks };
+        return {
+            background: bgIdx,
+            backgroundPalette: this.C64PaletteRGB[bgIdx],
+            blocks: fullscreenOutputBlocks
+        };
     }
 }

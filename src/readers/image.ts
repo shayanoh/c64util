@@ -5,6 +5,8 @@ import { C64Bitmap, C64ImageQuantizer } from './c64_image_quantizer.js';
 import { basename, dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { readFile } from 'fs/promises';
+import supportsTerminalGraphics from 'supports-terminal-graphics';
+import sharp from 'sharp';
 
 export class ImageReader extends Reader {
     private extendedColor: boolean = false;
@@ -62,6 +64,57 @@ export class ImageReader extends Reader {
         return viewerCode;
     }
 
+    private async displayImageInTerminal(
+        bitmap: C64Bitmap,
+        extendedColor: boolean
+    ): Promise<void> {
+        if (!supportsTerminalGraphics.stdout.kitty) {
+            console.log("Terminal doesn't support preview image.");
+            return;
+        }
+        const rgbBuffer = Buffer.alloc(320 * 200 * 3, 0);
+        for (let by = 0; by < 25; by++) {
+            for (let bx = 0; bx < 40; bx++) {
+                const block = bitmap.blocks[by * 40 + bx];
+                for (let y = 0; y < 8; y++) {
+                    for (let x = 0; x < 4; x++) {
+                        var rgb = block.colorsPalette[block.pixels[y * 4 + x]];
+                        const ybuf = by * 8 + y;
+                        const xbuf = bx * 8 + x * 2;
+                        rgbBuffer[ybuf * 320 * 3 + xbuf * 3 + 0] = rgb[0];
+                        rgbBuffer[ybuf * 320 * 3 + xbuf * 3 + 1] = rgb[1];
+                        rgbBuffer[ybuf * 320 * 3 + xbuf * 3 + 2] = rgb[2];
+                        rgbBuffer[ybuf * 320 * 3 + xbuf * 3 + 3] = rgb[0];
+                        rgbBuffer[ybuf * 320 * 3 + xbuf * 3 + 4] = rgb[1];
+                        rgbBuffer[ybuf * 320 * 3 + xbuf * 3 + 5] = rgb[2];
+                    }
+                }
+            }
+        }
+
+        const pngBuffer = await sharp(rgbBuffer, {
+            raw: { width: 320, height: 200, channels: 3 }
+        })
+            .png()
+            .toBuffer();
+        console.log('Transformed image:\n\n');
+
+        const b64 = pngBuffer.toString('base64');
+        const CHUNK = 4096;
+        const chunks: string[] = [];
+        for (let i = 0; i < b64.length; i += CHUNK) {
+            chunks.push(b64.slice(i, i + CHUNK));
+        }
+        chunks.forEach((chunk, idx) => {
+            const isLast = idx === chunks.length - 1;
+            const header =
+                idx === 0
+                    ? `a=T,f=100,m=${isLast ? 0 : 1}`
+                    : `m=${isLast ? 0 : 1}`;
+            process.stdout.write(`\x1b_G${header};${chunk}\x1b\\`);
+        });
+        process.stdout.write('\n\n');
+    }
     async read(): Promise<C64Info> {
         const quantizer = new C64ImageQuantizer(
             this.getFilePath(),
@@ -74,6 +127,8 @@ export class ImageReader extends Reader {
         );
 
         const c64bitmap = await quantizer.processImage();
+
+        await this.displayImageInTerminal(c64bitmap, this.extendedColor);
         const [
             bitmapBuffer,
             colorRamBuffer,

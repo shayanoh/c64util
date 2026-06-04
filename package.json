@@ -41,7 +41,8 @@
         "commander": "^12.0.0",
         "progress": "^2.0.3",
         "sharp": "^0.34.5",
-        "speaker": "^0.5.5"
+        "speaker": "^0.5.5",
+        "supports-terminal-graphics": "^0.1.0"
     },
     "type": "module",
     "devDependencies": {
