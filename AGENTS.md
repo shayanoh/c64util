@@ -7,6 +7,7 @@
 - `pnpm run start` — run built output
 - `pnpm run dev` — build + run in one step
 - `pnpm run clean` — remove `dist/`
+- `pnpm run buildasm` — assemble `c64turbo/*.asm` with 64tass (writes `.lst` beside each source), copy `.prg` to `assets/`
 - `pnpx prettier -w <file>` — format code (required after every edit)
 - Note that `pnpm run dev` does not need `--` to specify command line options
 

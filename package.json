@@ -11,7 +11,8 @@
         "build": "tsc && chmod +x dist/index.js",
         "start": "node dist/index.js",
         "dev": "tsc && node dist/index.js",
-        "clean": "rm -rf dist"
+        "clean": "rm -rf dist",
+        "buildasm": "mkdir -p assets && cd c64turbo && 64tass -Wall -q --cbm-prg -o loader.prg -L loader.lst loader.asm && 64tass -Wall -q --cbm-prg -o loader_header.prg -L loader_header.lst loader_header.asm && 64tass -Wall -q --cbm-prg -o image_viewer.prg -L image_viewer.lst image_viewer.asm && cp loader.prg loader_header.prg image_viewer.prg ../assets/"
     },
     "files": [
         "dist",

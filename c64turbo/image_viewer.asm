@@ -1,265 +1,262 @@
-
-*=$0801
-!word basend
-!word 0
-!byte $9e
-!byte <(((start / 1000) % 10) + $30)
-!byte <(((start / 100) % 10) + $30)
-!byte <(((start / 10) % 10) + $30)
-!byte <(((start / 1) % 10) + $30)
-!byte 0
+* = $0801
+.word basend
+.word 0
+.byte $9e
+.byte <(((start / 1000) % 10) + $30)
+.byte <(((start / 100) % 10) + $30)
+.byte <(((start / 10) % 10) + $30)
+.byte <(((start / 1) % 10) + $30)
+.byte 0
 basend:
-!word 0
+.word 0
 
-!address {
-  color = $D800
-  borColor = $D020
-  bkgColor = $D021
-  vicMemoryPointers = $D018 ; 0001 1110 [0010] 1*1k = screen - [111x] * 15*1k = bitmap/character
-  vicControl1 = $d011 ;RST8 ECM BMM DEN RSEL  YSCROLL*3
-  vicControl2 = $d016 ;-    -   RES MCM CSEL  XSCROLL*3
-  vicRaster = $d012
-  
-  ;Bit 0..1: Select the position of the VIC-memory
-  ;%00, 0: Bank 3: $C000-$FFFF, 49152-65535
-  ;%01, 1: Bank 2: $8000-$BFFF, 32768-49151
-  ;%10, 2: Bank 1: $4000-$7FFF, 16384-32767
-  ;%11, 3: Bank 0: $0000-$3FFF, 0-16383 (standard)
-  cia2PRA = $dd00
-  
-  screen0 = $8400 ; 0001xxxx - bank 2 (%01)
-  screen1 = $c400 ; 0001xxxx - bank 3 (%00)
-  
-  bitmap0 = $a000 ; xxxx1110 - bank 2 (%01)
-  bitmap1 = $e000 ; xxxx1110 - bank 3 (%00)
-  
-  memcpySrcLo = $61
-  memcpySrcHi = $62
-  memcpyDstLo = $63
-  memcpyDstHi = $64
-  memcpySrcEndLo = $65
-  memcpySrcEndHi = $66
-}
+color = $d800
+borColor = $d020
+bkgColor = $d021
+vicMemoryPointers = $d018 ; 0001 1110 [0010] 1*1k = screen - [111x] * 15*1k = bitmap/character
+vicControl1 = $d011 ;RST8 ECM BMM DEN RSEL  YSCROLL*3
+vicControl2 = $d016 ;-    -   RES MCM CSEL  XSCROLL*3
+vicRaster = $d012
 
-*= $820
+;Bit 0..1: Select the position of the VIC-memory
+;%00, 0: Bank 3: $C000-$FFFF, 49152-65535
+;%01, 1: Bank 2: $8000-$BFFF, 32768-49151
+;%10, 2: Bank 1: $4000-$7FFF, 16384-32767
+;%11, 3: Bank 0: $0000-$3FFF, 0-16383 (standard)
+cia2PRA = $dd00
 
-!macro memcpy src, srcEnd, dst
-LDY #$00
-LDA #<src
-STA memcpySrcLo
-LDA #>src
-STA memcpySrcHi
+screen0 = $8400 ; 0001xxxx - bank 2 (%01)
+screen1 = $c400 ; 0001xxxx - bank 3 (%00)
 
-LDA #<srcEnd
-STA memcpySrcEndLo
-LDA #>srcEnd
-STA memcpySrcEndHi
+bitmap0 = $a000 ; xxxx1110 - bank 2 (%01)
+bitmap1 = $e000 ; xxxx1110 - bank 3 (%00)
 
-LDA #<dst
-STA memcpyDstLo
-LDA #>dst
-STA memcpyDstHi
+memcpySrcLo = $61
+memcpySrcHi = $62
+memcpyDstLo = $63
+memcpyDstHi = $64
+memcpySrcEndLo = $65
+memcpySrcEndHi = $66
 
-JSR memcpySlow
-!end
+* = $0820
+
+memcpy .macro src, srcEnd, dst
+        ldy #$00
+        lda #<\src
+        sta memcpySrcLo
+        lda #>\src
+        sta memcpySrcHi
+
+        lda #<\srcEnd
+        sta memcpySrcEndLo
+        lda #>\srcEnd
+        sta memcpySrcEndHi
+
+        lda #<\dst
+        sta memcpyDstLo
+        lda #>\dst
+        sta memcpyDstHi
+
+        jsr memcpySlow
+.endm
 
 
 start:
-SEI
+        sei
 
-LDA #%00000101
-STA $01
+        lda #%00000101
+        sta $01
 
-LDA #$7F
-STA $DC0D
-LDA $DC0D ; ack irq
+        lda #$7f
+        sta $dc0d
+        lda $dc0d ; ack irq
 
 ;Install IRQ handler
-LDA #<irq_handler
-STA $FFFE
-LDA #>irq_handler
-STA $FFFF
+        lda #<irq_handler
+        sta $fffe
+        lda #>irq_handler
+        sta $ffff
 
-CLI
+        cli
 
 ; set bitmap mode
 
-lda cia2PRA
-and #%11111100
-ora #%00000001     ;<- your desired VIC bank value, see above
-sta cia2PRA
+        lda cia2PRA
+        and #%11111100
+        ora #%00000001     ;<- your desired VIC bank value, see above
+        sta cia2PRA
 
      ;x01xxxxx : ecm=0 bmm=1
-LDA vicControl1
-and #%10011111
-ora #%00100000
-STA vicControl1
+        lda vicControl1
+        and #%10011111
+        ora #%00100000
+        sta vicControl1
 
      ;xxx1xxxx : mcm = 1
-LDA vicControl2
-AND #%11101111
-ORA #%00010000
-STA vicControl2
+        lda vicControl2
+        and #%11101111
+        ora #%00010000
+        sta vicControl2
 
-LDA #%00011110
-STA vicMemoryPointers
+        lda #%00011110
+        sta vicMemoryPointers
 
-LDA #0
-STA borColor
+        lda #0
+        sta borColor
 
 ; prepare bitmaps
-+memcpy image1Bitmap, image1BitmapEnd, bitmap0
-+memcpy image2Bitmap, image2BitmapEnd, bitmap1
+        #memcpy image1Bitmap, image1BitmapEnd, bitmap0
+        #memcpy image2Bitmap, image2BitmapEnd, bitmap1
 ; prepare screens
-+memcpy image1Screen, image1ScreenEnd, screen0
-+memcpy image2Screen, image2ScreenEnd, screen1
+        #memcpy image1Screen, image1ScreenEnd, screen0
+        #memcpy image2Screen, image2ScreenEnd, screen1
 ; temp color
-+memcpy image1Color, image1ColorEnd, color
+        #memcpy image1Color, image1ColorEnd, color
 
-LDA hasImage2
-BNE imageLoop
+        lda image1Bg
+        sta bkgColor
+
+        lda hasImage2
+        bne imageLoop
 die:
-jmp die
+        jmp die
 
-!macro colorTransfer start, offset
-LDA #<(start+offset)
-STA memcpySrcLo
-LDA #>(start+offset)
-STA memcpySrcHi
-LDA #<(color+offset)
-STA memcpyDstLo
-LDA #>(color+offset)
-STA memcpyDstHi
+colorTransfer .macro colorSrc, offset
+        lda #<(\colorSrc + \offset)
+        sta memcpySrcLo
+        lda #>(\colorSrc + \offset)
+        sta memcpySrcHi
+        lda #<(color + \offset)
+        sta memcpyDstLo
+        lda #>(color + \offset)
+        sta memcpyDstHi
 
-LDX #$ff
-LDA (memcpySrcLo,X)
-STA (memcpyDstLo,X)
+        ldx #$ff
+        lda (memcpySrcLo, x)
+        sta (memcpyDstLo, x)
 -
-DEX
-LDA (memcpySrcLo,X)
-STA (memcpyDstLo,X)
-BNE -
-!end
+        dex
+        lda (memcpySrcLo, x)
+        sta (memcpyDstLo, x)
+        bne -
+.endm
 
 imageLoop:
 
-JSR waitForScanLine
+        jsr waitForScanLine
 
-lda cia2PRA
-and #%11111100
-ora #%00000001      ;<- your desired VIC bank value, see above
-sta cia2PRA
+        lda cia2PRA
+        and #%11111100
+        ora #%00000001      ;<- your desired VIC bank value, see above
+        sta cia2PRA
 
-;+memcpy image1Color, image1ColorEnd, color
-+colorTransfer image1Color, 0
-+colorTransfer image1Color, 256
-+colorTransfer image1Color, 512
-+colorTransfer image1Color, 768
-LDA image1Bg
-STA bkgColor
-
-
-JSR waitForScanLine
-
-lda cia2PRA
-and #%11111100
-ora #%00000000      ;<- your desired VIC bank value, see above
-sta cia2PRA
-;+memcpy image2Color, image2ColorEnd, color
-+colorTransfer image2Color, 0
-+colorTransfer image2Color, 256
-+colorTransfer image2Color, 512
-+colorTransfer image2Color, 768
-LDA image2Bg
-STA bkgColor
+        #colorTransfer image1Color, 0
+        #colorTransfer image1Color, 256
+        #colorTransfer image1Color, 512
+        #colorTransfer image1Color, 768
+        lda image1Bg
+        sta bkgColor
 
 
-jmp imageLoop
+        jsr waitForScanLine
+
+        lda cia2PRA
+        and #%11111100
+        ora #%00000000      ;<- your desired VIC bank value, see above
+        sta cia2PRA
+        #colorTransfer image2Color, 0
+        #colorTransfer image2Color, 256
+        #colorTransfer image2Color, 512
+        #colorTransfer image2Color, 768
+        lda image2Bg
+        sta bkgColor
+
+
+        jmp imageLoop
 
 waitForScanLine:
 -
-LDA vicControl1
-AND #%10000000
-beq -
-LDA vicRaster
-CMP #01
-BNE -
-RTS
+        lda vicControl1
+        and #%10000000
+        beq -
+        lda vicRaster
+        cmp #1
+        bne -
+        rts
 
 memcpySlow:
-LDY #$00
-@loop:
-LDA (memcpySrcLo),Y
-STA (memcpyDstLo),Y
+        ldy #$00
+memcpyLoop:
+        lda (memcpySrcLo), y
+        sta (memcpyDstLo), y
 
-INC memcpyDstLo
-BNE +
-INC memcpyDstHi
+        inc memcpyDstLo
+        bne +
+        inc memcpyDstHi
 +
 
-INC memcpySrcLo
-BNE +
-INC memcpySrcHi
+        inc memcpySrcLo
+        bne +
+        inc memcpySrcHi
 +
 
-LDA memcpySrcLo
-CMP memcpySrcEndLo
-BNE @loop
-LDA memcpySrcHi
-CMP memcpySrcEndHi
-BNE @loop
+        lda memcpySrcLo
+        cmp memcpySrcEndLo
+        bne memcpyLoop
+        lda memcpySrcHi
+        cmp memcpySrcEndHi
+        bne memcpyLoop
 
-RTS
+        rts
 
 irq_handler:
-PHA
-TXA
-PHA
+        pha
+        txa
+        pha
 
-LDA $D019          ; Load current VIC interrupt flags
-STA $D019 
-LDA $DC0D          ; Read and Acknowledge CIA #1 interrupts
-LDA $DD0D          ; Read and Acknowledge CIA #2 interrupts
+        lda $d019          ; Load current VIC interrupt flags
+        sta $d019
+        lda $dc0d          ; Read and Acknowledge CIA #1 interrupts
+        lda $dd0d          ; Read and Acknowledge CIA #2 interrupts
 
-PLA
-TAX
-PLA
-RTI
+        pla
+        tax
+        pla
+        rti
 
 
 market:
-!byte 1,2,3,4,5
+        .byte 1, 2, 3, 4, 5
 
 image1Bitmap:
-!fill 8000, 0
+        .fill 8000, 0
 image1BitmapEnd:
 
 image1Screen:
-!fill 1000, 0
+        .fill 1000, 0
 image1ScreenEnd:
 
 image1Color:
-!fill 1000,0
+        .fill 1000, 0
 image1ColorEnd:
 
 image1Bg:
-!byte 00
+        .byte 0
 
 hasImage2:
-!byte 00
+        .byte 0
 
 image2Bitmap:
-!fill 8000, 0
+        .fill 8000, 0
 image2BitmapEnd:
 
 image2Screen:
-!fill 1000, 0
+        .fill 1000, 0
 image2ScreenEnd:
 
 image2Color:
-!fill 1000,0
+        .fill 1000, 0
 image2ColorEnd:
 
 image2Bg:
-!byte 00
-
+        .byte 0

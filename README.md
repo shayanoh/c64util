@@ -122,8 +122,9 @@ Extensible plugin-based design:
 - `src/writers/` - Format writers
 - `src/player/` - Interactive play mode TUI
 - `src/base/` - Abstract base classes and factories
-- `c64turbo/` - A turbo loader with graphics screen, written in commodore 64
-  assembly
+- `c64turbo/` - Turbo loader and image viewer in 64tass-compatible assembly
+  (assemble with `npm run buildasm`; requires [64tass](https://tass64.sourceforge.net/)
+  on `PATH`)
 - `assets/` - Assembled turbo loader and graphics screen, for use in
   `c64util -t`
 - `dist/` - Compiled JavaScript output

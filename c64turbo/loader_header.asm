@@ -1,57 +1,43 @@
+* = $0351
 
+.include "loader_symbols.inc"
 
-*= $0351
+loader_irq = $2a9
+loader_reSync = $2c9
 
-!address {
-  BG_COLOR = $D020
-  BG_BLANK_ADDR = $D011
-
-  ADDR_START_LOW = $61
-  ADDR_START_HIGH = $62
-  ADDR_END_LOW = $63
-  ADDR_END_HIGH = $64
-  LDR_BIT_ACCUMULATOR = $65
-  LDR_BIT_COUNTER = $66
-  LDR_BYTE = $69
-  LDR_BYTE_SIGNAL = $6a
-  LDR_CHECKSUM = $6b
-  
-  loader_irq = $2A9
-  loader_reSync = $2C9
-}
 start:
 
 ; Disable interrupts
-SEI
-LDA #%00000101
-STA $01
+        sei
+        lda #%00000101
+        sta $01
 
 ; CIA1 ICR: disable ALL CIA interrupts
-LDA #$7F
-STA $DC0D
+        lda #$7f
+        sta $dc0d
 ; Clear CIA 1 status
-LDA $DC0D
-    
+        lda $dc0d
+
 ;Install IRQ handler
-LDA #<loader_irq;#<irq_handler
-STA $FFFE
-LDA #>loader_irq;#>irq_handler
-STA $FFFF
+        lda #<loader_irq
+        sta $fffe
+        lda #>loader_irq
+        sta $ffff
 
 ; Read average signal length from DWORD $02A7 into CIA 1 Timer A countdown
-LDA $2A7
-STA $DC04
-LDA $2A8
-STA $DC05
+        lda $2a7
+        sta $dc04
+        lda $2a8
+        sta $dc05
 
 
 ; Enable Timer A underflow interrupt
-LDA #%10010000 ; bit0 timer A, bit4 flag
-STA $DC0D
+        lda #%10010000 ; bit0 timer A, bit4 flag
+        sta $dc0d
 
 ; Setup Timer A
-LDA #%00011001
-STA $DC0E
+        lda #%00011001
+        sta $dc0e
 
 ;$DC0E: Timer A control
 ;Bit 0: 0 = Stop timer; 1 = Start timer
@@ -66,98 +52,98 @@ STA $DC0E
 
 ; setup loader variables
 
-LDA #$00
-STA LDR_BIT_ACCUMULATOR
-LDA #$08
-STA LDR_BIT_COUNTER
-LDA #$00
-STA LDR_BYTE_SIGNAL
+        lda #$00
+        sta LDR_BIT_ACCUMULATOR
+        lda #$08
+        sta LDR_BIT_COUNTER
+        lda #$00
+        sta LDR_BYTE_SIGNAL
 
 ; Enable interrupts
-CLI
+        cli
 
-; Loader ready and running. 
+; Loader ready and running.
 
 
 dataBlocks:
 ; Get sync signal
-JSR loader_reSync
+        jsr loader_reSync
 ; Read following data type
-JSR waitForByte
-CMP #$00
-BEQ finish
-CMP #$02
-BEQ prg
+        jsr waitForByte
+        cmp #$00
+        beq finish
+        cmp #$02
+        beq prg
 
 error:
-JMP error ; infinite loop... can't do anything
+        jmp error ; infinite loop... can't do anything
 
 
 prg:
 ; read start address
-JSR waitForByte
-STA ADDR_START_LOW
-JSR waitForByte
-STA ADDR_START_HIGH
+        jsr waitForByte
+        sta ADDR_START_LOW
+        jsr waitForByte
+        sta ADDR_START_HIGH
 ; read end address
-JSR waitForByte
-STA ADDR_END_LOW
-JSR waitForByte
-STA ADDR_END_HIGH
+        jsr waitForByte
+        sta ADDR_END_LOW
+        jsr waitForByte
+        sta ADDR_END_HIGH
 
-LDY #$00
-STY LDR_CHECKSUM
+        ldy #$00
+        sty LDR_CHECKSUM
 
-@dataLoop:
-INC BG_COLOR
-JSR waitForByte
+dataLoop:
+        inc BG_COLOR
+        jsr waitForByte
 
-STA (ADDR_START_LOW),Y
-EOR LDR_CHECKSUM
-STA LDR_CHECKSUM
+        sta (ADDR_START_LOW), y
+        eor LDR_CHECKSUM
+        sta LDR_CHECKSUM
 
-INC ADDR_START_LOW
-BNE +
-INC ADDR_START_HIGH
+        inc ADDR_START_LOW
+        bne +
+        inc ADDR_START_HIGH
 +
 
-LDA ADDR_START_LOW
-CMP ADDR_END_LOW
-BNE @dataLoop
-LDA ADDR_START_HIGH
-CMP ADDR_END_HIGH
-BNE @dataLoop
+        lda ADDR_START_LOW
+        cmp ADDR_END_LOW
+        bne dataLoop
+        lda ADDR_START_HIGH
+        cmp ADDR_END_HIGH
+        bne dataLoop
 
 ; Validate checksum
-JSR waitForByte
-EOR LDR_CHECKSUM
-BNE error
+        jsr waitForByte
+        eor LDR_CHECKSUM
+        bne error
 
-JMP dataBlocks
+        jmp dataBlocks
 
 finish:
 
-SEI
+        sei
 
-LDA #$37
-STA $01          ; full memory map restored ($37 = BASIC+KERNAL+I/O)
+        lda #$37
+        sta $01          ; full memory map restored ($37 = BASIC+KERNAL+I/O)
 
-JSR $FDA3        ; KERNAL: restore default I/O vectors ($ff84 IOINIT [Initialize I/O devices])
-JSR $FD15        ; KERNAL: set I/O base (init vectors)  ($ff8a RESTOR [Set the top of RAM])
-JSR $E453        ; KERNAL: init BASIC interpreter
+        jsr $fda3        ; KERNAL: restore default I/O vectors ($ff84 IOINIT [Initialize I/O devices])
+        jsr $fd15        ; KERNAL: set I/O base (init vectors)  ($ff8a RESTOR [Set the top of RAM])
+        jsr $e453        ; KERNAL: init BASIC interpreter
 
-CLI
+        cli
 
-LDX #$80         ; X = $80 (RUN flag)
-JMP ($0300)
+        ldx #$80         ; X = $80 (RUN flag)
+        jmp ($0300)
 
 waitForByte:
-LDA LDR_BYTE_SIGNAL
-BEQ waitForByte
-LDA #$00
-STA LDR_BYTE_SIGNAL
-LDA LDR_BYTE
-RTS
+        lda LDR_BYTE_SIGNAL
+        beq waitForByte
+        lda #$00
+        sta LDR_BYTE_SIGNAL
+        lda LDR_BYTE
+        rts
 
 
 ; Should end at most @ $3fb

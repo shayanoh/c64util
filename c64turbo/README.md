@@ -3,7 +3,11 @@
 This is a custom turbo loader that is used when creating TAPs or WAVs with
 turbo.
 
-To edit you can use C64Studio to open the solution in this directory.
+To edit you can use any 6502 editor, or C64Studio to open the solution in this
+directory. Sources are in [64tass](https://tass64.sourceforge.net/) compatible
+format and can be assembled with 64tass using `npm run buildasm` from the repo
+root (requires `64tass` on `PATH`). Listing files (`.lst`) are written next to
+each `.asm` file.
 
 ## File Details
 
@@ -20,8 +24,8 @@ the code is split into two parts.
 
 When developing you can change the `getLoaderCode()` in
 `src/writers/tapePulseGeneratorTurbo.ts` to read the `.prg` files from this
-folder. When development is done, move the built `.prg` files to `assets/`
-directory and change back the `getLoaderCode()` to normal.
+folder. When development is done, run `npm run buildasm` to copy built `.prg`
+files to `assets/` and change back the `getLoaderCode()` to normal.
 
 The `loading.graphicscreen` file can also be edited with C64Studio, and the
 resulting `loading.bin` file should also be in `assets/` directory.
@@ -34,6 +38,5 @@ therefor emulating a 256 color palette in c64.
 ## Development instructions
 
 When developing you can change the `getViewerCode()` in `src/readers/image.ts`
-to read the `.prg` files from this folder. When development is done, move the
-built `.prg` files to `assets/` directory and change back the `getLoaderCode()`
-to normal.
+to read the `.prg` files from this folder. When development is done, run
+`npm run buildasm` and change back the `getViewerCode()` to normal.
