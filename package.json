@@ -38,8 +38,8 @@
     "license": "MIT",
     "dependencies": {
         "blessed": "^0.1.81",
-        "chalk": "^5.3.0",
-        "commander": "^12.0.0",
+        "chalk": "^5.6.2",
+        "commander": "^12.1.0",
         "progress": "^2.0.3",
         "sharp": "^0.34.5",
         "speaker": "^0.5.5",
@@ -47,8 +47,10 @@
     },
     "type": "module",
     "devDependencies": {
-        "@types/node": "^25.6.0",
+        "@types/node": "^25.9.5",
         "@types/progress": "^2.0.7",
-        "typescript": "^6.0.3"
-    }
+        "prettier": "^3.9.5",
+        "typescript": "^7.0.2"
+    },
+    "packageManager": "pnpm@11.11.0+sha512.4463f65fd80ed80d69bc1d4bf163ee94f605c7380fc318bb5b2ebe15f8cd12d49c51a4d59e951b401e764d3b6ca751cbf51bc50ed7001a6bcb4935e684c34882"
 }
